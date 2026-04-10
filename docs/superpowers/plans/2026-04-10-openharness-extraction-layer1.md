@@ -235,6 +235,88 @@ git commit -m "feat(harness): extract boundary interfaces, types, and errors fro
 
 ---
 
+## Task 2.5: Add SandboxPolicy type to harness/types.go
+
+**Files:**
+- Modify: `openharness/harness/types.go`
+- Modify: `openharness/harness/interfaces_test.go`
+
+**Why now:** The Montara coding vertical design spec (2026-04-11) identified SandboxPolicy as a Layer 1 gap. Adding it during extraction (rather than retrofitting later) ensures the type is available from the start. This is a backward-compatible addition — `*SandboxPolicy` is a nil-able pointer field on `RunConfig`.
+
+See: [Montara Design Spec](../specs/2026-04-11-montara-coding-vertical-design.md#gap-1-sandboxpolicy-layer-1--harnesstypesgo)
+
+- [ ] **Step 1: Add SandboxPolicy type and RunConfig field**
+
+After copying types.go from ghostfin (Task 2, Step 4), add the following to `openharness/harness/types.go`:
+
+```go
+// SandboxPolicy constrains tool execution within a run.
+// Nil policy means unrestricted (default for Lite desktop use).
+// Used by coding agents and any vertical that executes external commands.
+type SandboxPolicy struct {
+    AllowedPaths   []string `json:"allowed_paths,omitempty"`
+    DeniedCommands []string `json:"denied_commands,omitempty"`
+    TimeoutSeconds int      `json:"timeout_seconds,omitempty"`
+    NetworkAccess  bool     `json:"network_access"`
+}
+```
+
+Add to `RunConfig`:
+
+```go
+type RunConfig struct {
+    // ... existing fields ...
+    Sandbox *SandboxPolicy `json:"sandbox,omitempty"`
+}
+```
+
+- [ ] **Step 2: Add SandboxPolicy test to interfaces_test.go**
+
+Append to `openharness/harness/interfaces_test.go`:
+
+```go
+func TestSandboxPolicyDefaults(t *testing.T) {
+    // Nil sandbox = unrestricted (backward compatible)
+    cfg := RunConfig{RunID: "r1", Mode: "auto"}
+    if cfg.Sandbox != nil {
+        t.Fatal("default Sandbox should be nil")
+    }
+
+    // With policy
+    cfg.Sandbox = &SandboxPolicy{
+        AllowedPaths:   []string{"/tmp/workspace"},
+        DeniedCommands: []string{"rm -rf /"},
+        TimeoutSeconds: 30,
+        NetworkAccess:  false,
+    }
+    if len(cfg.Sandbox.AllowedPaths) != 1 {
+        t.Fatalf("AllowedPaths = %d, want 1", len(cfg.Sandbox.AllowedPaths))
+    }
+}
+```
+
+- [ ] **Step 3: Run tests**
+
+```bash
+cd /Users/adhita/projects/python/src/github.com/swiftdiaries/openharness
+go test ./harness/ -v -run TestSandbox
+```
+
+Expected: PASS
+
+- [ ] **Step 4: Commit**
+
+```bash
+cd /Users/adhita/projects/python/src/github.com/swiftdiaries/openharness
+git add harness/types.go harness/interfaces_test.go
+git commit -m "feat(harness): add SandboxPolicy type for tool execution constraints
+
+Identified by Montara coding vertical design as a framework gap.
+Backward compatible: nil Sandbox on RunConfig = unrestricted (existing behavior)."
+```
+
+---
+
 ## Task 3: Extract RunnerRegistry and StoreBackedEventStream
 
 **Files:**
@@ -914,13 +996,14 @@ git commit -m "refactor: import harness from openharness"
 
 ## Verification (Layer 1 Complete)
 
-After all 8 tasks:
+After all 9 tasks (including Task 2.5):
 
 1. **openharness** — `go test ./... -v` → all pass
-2. **ghostfin** — `cd desktop && go test ./... -tags sqliteonly -v` → all pass
-3. **ghostfin** — `cd desktop && wails dev -tags sqliteonly` → app starts, agent chat works
-4. **ghostfin-enterprise** — `go test ./... -v` → all pass
-5. **No references** to old path: `grep -r 'pkg/harness' ghostfin/desktop/ --include='*.go'` → empty
+2. **openharness** — `SandboxPolicy` type exists in `harness/types.go`, `RunConfig.Sandbox` field available
+3. **ghostfin** — `cd desktop && go test ./... -tags sqliteonly -v` → all pass
+4. **ghostfin** — `cd desktop && wails dev -tags sqliteonly` → app starts, agent chat works
+5. **ghostfin-enterprise** — `go test ./... -v` → all pass
+6. **No references** to old path: `grep -r 'pkg/harness' ghostfin/desktop/ --include='*.go'` → empty
 
 ---
 
@@ -1030,3 +1113,17 @@ After Layer 1 lands, each subsequent layer gets its own detailed plan. Here's th
 | Move from ghostfin-enterprise | `harness/enterprise/testutil/pg.go` | Testcontainers Postgres |
 | Move from ghostfin-enterprise | `harness/enterprise/testutil/vault.go` | Testcontainers Vault |
 | Move from ghostfin-enterprise | `harness/enterprise/testutil/minio.go` | Testcontainers MinIO |
+
+### Montara Coding Vertical (Post Layer 2)
+
+Reference implementation at `examples/montara/` — a minimal coding agent that validates the framework's registration APIs. See [Montara Design Spec](../specs/2026-04-11-montara-coding-vertical-design.md).
+
+| File | Purpose | Depends on Layer |
+|---|---|---|
+| `examples/montara/main.go` | Entry point, wires openharness | Layer 2 (needs `app.Tools().Register`) |
+| `examples/montara/tools/file_read.go` | File reading with line numbers | Layer 2 (needs `tools.Tool` interface) |
+| `examples/montara/tools/file_edit.go` | Search/replace editing | Layer 2 |
+| `examples/montara/tools/shell_exec.go` | Command execution (uses `SandboxPolicy` from Layer 1) | Layer 2 |
+| `examples/montara/tools/git.go` | Structured git operations | Layer 2 |
+| `examples/montara/agents/pair.go` | Pair programmer agent definition | Layer 2 (needs `harness.AgentDefinition`) |
+| `examples/montara/frontend/diff_view.go` | Diff viewer registration | Layer 4 (needs `app.Frontend().RegisterView`) |
