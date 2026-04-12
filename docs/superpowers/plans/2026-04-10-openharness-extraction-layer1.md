@@ -20,12 +20,12 @@
 
 | Task | Beads ID | Status |
 |------|----------|--------|
-| Task 1: Bootstrap openharness Go module | `openharness-dbi` | open |
-| Task 2: Extract harness interfaces and types | `openharness-8op` | open |
-| Task 2.5: Add SandboxPolicy type | `openharness-gng` | open |
-| Task 3: Extract RunnerRegistry and StoreBackedEventStream | `openharness-jo1` | open |
-| Task 4: Extract Lite implementations into harness/lite/ | `openharness-fs7` | open |
-| Task 5: Copy existing tests from ghostfin | `openharness-8eo` | open |
+| Task 1: Bootstrap openharness Go module | `openharness-dbi` | closed |
+| Task 2: Extract harness interfaces and types | `openharness-8op` | closed |
+| Task 2.5: Add SandboxPolicy type | `openharness-gng` | closed |
+| Task 3: Extract RunnerRegistry and StoreBackedEventStream | `openharness-jo1` | closed |
+| Task 4: Extract Lite implementations into harness/lite/ | `openharness-fs7` | closed |
+| Task 5: Copy existing tests from ghostfin | `openharness-8eo` | closed |
 | Task 6: Wire ghostfin to import from openharness | `openharness-weu` | open |
 | Task 7: Remove old harness package from ghostfin | `openharness-kjz` | open |
 | Task 8: Update ghostfin-enterprise to import from openharness | `openharness-d7u` | open |
