@@ -10,6 +10,26 @@
 
 **Reference:** [Design Spec](../docs/superpowers/specs/2026-04-10-openharness-extraction-design.md)
 
+## Pipeline Tracking
+
+| Field | Value |
+|-------|-------|
+| Epic | `openharness-282` |
+| Status | in_progress |
+| Worktree | (pending) |
+
+| Task | Beads ID | Status |
+|------|----------|--------|
+| Task 1: Bootstrap openharness Go module | `openharness-dbi` | open |
+| Task 2: Extract harness interfaces and types | `openharness-8op` | open |
+| Task 2.5: Add SandboxPolicy type | `openharness-gng` | open |
+| Task 3: Extract RunnerRegistry and StoreBackedEventStream | `openharness-jo1` | open |
+| Task 4: Extract Lite implementations into harness/lite/ | `openharness-fs7` | open |
+| Task 5: Copy existing tests from ghostfin | `openharness-8eo` | open |
+| Task 6: Wire ghostfin to import from openharness | `openharness-weu` | open |
+| Task 7: Remove old harness package from ghostfin | `openharness-kjz` | open |
+| Task 8: Update ghostfin-enterprise to import from openharness | `openharness-d7u` | open |
+
 ---
 
 ## File Structure
