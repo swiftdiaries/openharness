@@ -43,6 +43,7 @@ type RunConfig struct {
 	VaultToken     string          `json:"vault_token,omitempty"`
 	ArtifactBucket string          `json:"artifact_bucket,omitempty"`
 	Mode           string          `json:"mode,omitempty"`
+	Sandbox        *SandboxPolicy  `json:"sandbox,omitempty"`
 }
 
 // RunStatus reports the current state of a dispatched run.
@@ -241,4 +242,14 @@ type Snapshot struct {
 	Checkpoint  int64           `json:"checkpoint"`
 	AgentConfig AgentDefinition `json:"agent_config"`
 	Status      string          `json:"status"`
+}
+
+// SandboxPolicy constrains tool execution within a run.
+// Nil policy means unrestricted (default for Lite desktop use).
+// Used by coding agents and any vertical that executes external commands.
+type SandboxPolicy struct {
+	AllowedPaths   []string `json:"allowed_paths,omitempty"`
+	DeniedCommands []string `json:"denied_commands,omitempty"`
+	TimeoutSeconds int      `json:"timeout_seconds,omitempty"`
+	NetworkAccess  bool     `json:"network_access"`
 }

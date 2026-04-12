@@ -68,3 +68,22 @@ func TestSentinelErrors(t *testing.T) {
 		t.Fatal("ErrRunNotActive should not be nil")
 	}
 }
+
+func TestSandboxPolicyDefaults(t *testing.T) {
+	// Nil sandbox = unrestricted (backward compatible)
+	cfg := RunConfig{RunID: "r1", Mode: "auto"}
+	if cfg.Sandbox != nil {
+		t.Fatal("default Sandbox should be nil")
+	}
+
+	// With policy
+	cfg.Sandbox = &SandboxPolicy{
+		AllowedPaths:   []string{"/tmp/workspace"},
+		DeniedCommands: []string{"rm -rf /"},
+		TimeoutSeconds: 30,
+		NetworkAccess:  false,
+	}
+	if len(cfg.Sandbox.AllowedPaths) != 1 {
+		t.Fatalf("AllowedPaths = %d, want 1", len(cfg.Sandbox.AllowedPaths))
+	}
+}
