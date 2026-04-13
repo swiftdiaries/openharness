@@ -14,6 +14,29 @@
 
 ---
 
+## Pipeline Tracking
+
+| Field | Value |
+|-------|-------|
+| Epic | `openharness-7fi` |
+| Status | in_progress |
+| Worktree | (pending) |
+
+| Task | Beads ID | Status |
+|------|----------|--------|
+| Task 1: Worktree setup + sanity check | openharness-5ly | open |
+| Task 2: Move cost package | openharness-lsy | open |
+| Task 3: Move sessions package (Lite only) | openharness-9zl | open |
+| Task 4: Move edition package | openharness-0nn | open |
+| Task 5: Move config package | openharness-1fe | open |
+| Task 6: Create openharness/agent/types.go | openharness-e45 | open |
+| Task 7: Create openharness/agent/interfaces.go | openharness-xqu | open |
+| Task 8: Create openharness/agent/defaults.go | openharness-egl | open |
+| Task 9: Test the agent interface package (TDD) | openharness-sk8 | open |
+| Task 10: Final verification + push | openharness-85v | open |
+
+---
+
 ## File Inventory
 
 ### Files to copy from ghostfin (with optional build-tag stripping)
