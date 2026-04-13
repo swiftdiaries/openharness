@@ -19,21 +19,22 @@
 | Field | Value |
 |-------|-------|
 | Epic | `openharness-7fi` |
-| Status | in_progress |
-| Worktree | (pending) |
+| Status | complete |
+| Completed | 2026-04-14 |
+| Worktree | .worktrees/plan-1-interfaces-and-concretes (branch: feat/layer-2-plan-1-interfaces-and-concretes) |
 
 | Task | Beads ID | Status |
 |------|----------|--------|
-| Task 1: Worktree setup + sanity check | openharness-5ly | open |
-| Task 2: Move cost package | openharness-lsy | open |
-| Task 3: Move sessions package (Lite only) | openharness-9zl | open |
-| Task 4: Move edition package | openharness-0nn | open |
-| Task 5: Move config package | openharness-1fe | open |
-| Task 6: Create openharness/agent/types.go | openharness-e45 | open |
-| Task 7: Create openharness/agent/interfaces.go | openharness-xqu | open |
-| Task 8: Create openharness/agent/defaults.go | openharness-egl | open |
-| Task 9: Test the agent interface package (TDD) | openharness-sk8 | open |
-| Task 10: Final verification + push | openharness-85v | open |
+| Task 1: Worktree setup + sanity check | openharness-5ly | closed |
+| Task 2: Move cost package | openharness-lsy | closed |
+| Task 3: Move sessions package (Lite only) | openharness-9zl | closed |
+| Task 4: Move edition package | openharness-0nn | closed |
+| Task 5: Move config package | openharness-1fe | closed |
+| Task 6: Create openharness/agent/types.go | openharness-e45 | closed |
+| Task 7: Create openharness/agent/interfaces.go | openharness-xqu | closed |
+| Task 8: Create openharness/agent/defaults.go | openharness-egl | closed |
+| Task 9: Test the agent interface package (TDD) | openharness-sk8 | closed |
+| Task 10: Final verification + push | openharness-85v | closed |
 
 ---
 
