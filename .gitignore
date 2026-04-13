@@ -3,3 +3,9 @@
 .dolt/
 *.db
 .beads-credential-key
+
+# local Claude
+.claude/settings.local.json
+
+# worktrees
+.worktrees/
