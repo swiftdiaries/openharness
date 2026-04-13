@@ -15,8 +15,10 @@
 | Field | Value |
 |-------|-------|
 | Epic | `openharness-282` |
-| Status | in_progress |
-| Worktree | (pending) |
+| Status | complete |
+| Completed | 2026-04-13 |
+| Release | [v0.1.0](https://github.com/swiftdiaries/openharness/releases/tag/v0.1.0) |
+| Worktree | main (no isolation; narrow cross-repo scope) |
 
 | Task | Beads ID | Status |
 |------|----------|--------|
@@ -26,9 +28,16 @@
 | Task 3: Extract RunnerRegistry and StoreBackedEventStream | `openharness-jo1` | closed |
 | Task 4: Extract Lite implementations into harness/lite/ | `openharness-fs7` | closed |
 | Task 5: Copy existing tests from ghostfin | `openharness-8eo` | closed |
-| Task 6: Wire ghostfin to import from openharness | `openharness-weu` | open |
-| Task 7: Remove old harness package from ghostfin | `openharness-kjz` | open |
-| Task 8: Update ghostfin-enterprise to import from openharness | `openharness-d7u` | open |
+| Task 6: Wire ghostfin to import from openharness | `openharness-weu` | closed (no-op) |
+| Task 7: Remove old harness package from ghostfin | `openharness-kjz` | closed |
+| Task 8: Update ghostfin-enterprise to import from openharness | `openharness-d7u` | closed |
+
+### Notes from execution
+- **Task 6 was a no-op:** `ghostfin/desktop/pkg/harness` had zero internal consumers. The package was built but never wired into ghostfin's import graph. Wiring ghostfin to openharness is deferred to Layer 2+ when `internal/agent` is rewired.
+- **Task 8 was the real migration:** ghostfin-enterprise had 21 files importing `ghostfin/desktop/pkg/harness` (Postgres stores, Vault, S3, K8s/Lambda runners, orchestrator). All migrated to `openharness/harness` via a single sed pass.
+- **openharness consumes:** None yet. The contract is published, the implementation lives alongside it, and Layer 2 work can now proceed against `v0.1.0`.
+- **Known pre-existing failures in ghostfin-enterprise** (not caused by migration, tracked separately): `TestPgSkillStoreUploadAndResolve`, `TestPgSkillStoreListTenant`, `TestLambdaRunnerDispatchWritesSnapshot` — all fail with the same AWS S3 SDK v2 error `failed to seek body to start, request stream is not seekable`. Root cause: bodies passed to `PutObject` are not wrapped in a seekable Reader (e.g. `bytes.Reader`). Fix belongs in `skill_pg.go` and `runner_lambda.go` — not an extraction concern.
+- **Testcontainers vuln workaround:** `testcontainers/ryuk:0.13.0` (pinned by testcontainers-go v0.42.0) has critical Go stdlib CVEs; upstream hasn't bumped Go. Run enterprise tests with `TESTCONTAINERS_RYUK_DISABLED=true`.
 
 ---
 
