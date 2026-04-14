@@ -18,25 +18,25 @@
 
 | Field | Value |
 |-------|-------|
-| Epic | *(create with `bd create --type=epic` before starting Task 1)* |
-| Status | not started |
-| Worktree | `.worktrees/plan-2-providers` (branch: `feat/layer-2-plan-2-providers`) |
+| Epic | `openharness-ssx` |
+| Status | in_progress |
+| Worktree | (pending) |
 
 | Task | Beads ID | Status |
 |------|----------|--------|
-| Task 1: Worktree sanity + add Anthropic SDK dep | *(fill in)* | open |
-| Task 2: Move `providers/types.go` | *(fill in)* | open |
-| Task 3: Move `providers/models.go` | *(fill in)* | open |
-| Task 4: Move `providers/registry.go` + test | *(fill in)* | open |
-| Task 5: Move `providers/openai_compat.go` + test | *(fill in)* | open |
-| Task 6: Move `providers/openrouter.go` + test (drop keychain dep) | *(fill in)* | open |
-| Task 7: `providers/anthropic.go` skeleton + constructor test | *(fill in)* | open |
-| Task 8: `anthropic.go` non-streaming `Chat` (text response) | *(fill in)* | open |
-| Task 9: `anthropic.go` streaming `ChatStream` (text deltas) | *(fill in)* | open |
-| Task 10: `anthropic.go` tool-call reassembly | *(fill in)* | open |
-| Task 11: `anthropic.go` prompt caching + cache-token accounting | *(fill in)* | open |
-| Task 12: `anthropic.go` error handling + retry semantics | *(fill in)* | open |
-| Task 13: Final verification, lint, push | *(fill in)* | open |
+| Task 1: Worktree sanity + add Anthropic SDK dep | `openharness-qwi` | open |
+| Task 2: Move `providers/types.go` | `openharness-by6` | open |
+| Task 3: Move `providers/models.go` | `openharness-c31` | open |
+| Task 4: Move `providers/registry.go` + test | `openharness-oe8` | open |
+| Task 5: Move `providers/openai_compat.go` + test | `openharness-xyc` | open |
+| Task 6: Move `providers/openrouter.go` + test (drop keychain dep) | `openharness-8zj` | open |
+| Task 7: `providers/anthropic.go` skeleton + constructor test | `openharness-x9g` | open |
+| Task 8: `anthropic.go` non-streaming `Chat` (text response) | `openharness-78y` | open |
+| Task 9: `anthropic.go` streaming `ChatStream` (text deltas) | `openharness-bl0` | open |
+| Task 10: `anthropic.go` tool-call reassembly | `openharness-32t` | open |
+| Task 11: `anthropic.go` prompt caching + cache-token accounting | `openharness-2v0` | open |
+| Task 12: `anthropic.go` error handling + retry semantics | `openharness-d31` | open |
+| Task 13: Final verification, lint, push | `openharness-bup` | open |
 
 **Before Task 1:** create a beads epic and the 13 tasks above. Claim each task before starting it and close it after its commit lands.
 
