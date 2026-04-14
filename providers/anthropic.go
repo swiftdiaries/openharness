@@ -75,8 +75,39 @@ func (p *AnthropicProvider) Chat(ctx context.Context, req ChatRequest) (*ChatRes
 	return p.messageToChatResponse(msg), nil
 }
 
+// ChatStream sends a streaming Messages request. Each text delta is forwarded
+// via onChunk; the running message is reassembled server-side and returned as
+// a ChatResponse. A final Done:true chunk is emitted once the stream completes.
 func (p *AnthropicProvider) ChatStream(ctx context.Context, req ChatRequest, onChunk func(StreamChunk)) (*ChatResponse, error) {
-	return nil, fmt.Errorf("anthropic: ChatStream not yet implemented")
+	params, err := p.buildMessageParams(req)
+	if err != nil {
+		return nil, err
+	}
+
+	stream := p.client.Messages.NewStreaming(ctx, params)
+
+	var accumulated anthropic.Message
+	for stream.Next() {
+		event := stream.Current()
+		if err := accumulated.Accumulate(event); err != nil {
+			return nil, fmt.Errorf("anthropic stream accumulate: %w", err)
+		}
+
+		// Forward text deltas to the caller as they arrive.
+		if event.Type == "content_block_delta" && event.Delta.Type == "text_delta" {
+			if onChunk != nil && event.Delta.Text != "" {
+				onChunk(StreamChunk{Content: event.Delta.Text})
+			}
+		}
+	}
+	if err := stream.Err(); err != nil {
+		return nil, fmt.Errorf("anthropic stream: %w", err)
+	}
+
+	if onChunk != nil {
+		onChunk(StreamChunk{Done: true})
+	}
+	return p.messageToChatResponse(&accumulated), nil
 }
 
 // buildMessageParams translates a ChatRequest into anthropic.MessageNewParams.
