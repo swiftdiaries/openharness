@@ -149,7 +149,11 @@ func (p *AnthropicProvider) buildMessageParams(req ChatRequest) (anthropic.Messa
 		Messages:  userOrAssistant,
 	}
 	if systemText != "" {
-		params.System = []anthropic.TextBlockParam{{Text: systemText}}
+		block := anthropic.TextBlockParam{Text: systemText}
+		if cacheOpt, _ := req.Options["prompt_cache_system"].(bool); cacheOpt {
+			block.CacheControl = anthropic.NewCacheControlEphemeralParam()
+		}
+		params.System = []anthropic.TextBlockParam{block}
 	}
 
 	if len(req.Tools) > 0 {

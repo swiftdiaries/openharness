@@ -162,3 +162,51 @@ func TestAnthropicProvider_Chat_ToolCall(t *testing.T) {
 		t.Errorf("FinishReason = %q, want tool_use", resp.FinishReason)
 	}
 }
+
+func TestAnthropicProvider_Chat_CacheTokens(t *testing.T) {
+	body := `{
+		"id": "msg_cache_1",
+		"type": "message",
+		"role": "assistant",
+		"model": "claude-opus-4-6",
+		"content": [{"type": "text", "text": "cached response"}],
+		"stop_reason": "end_turn",
+		"usage": {
+			"input_tokens": 4,
+			"output_tokens": 3,
+			"cache_creation_input_tokens": 1024,
+			"cache_read_input_tokens": 2048
+		}
+	}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		buf, _ := io.ReadAll(r.Body)
+		if !strings.Contains(string(buf), `"cache_control"`) {
+			t.Errorf("request body missing cache_control marker: %s", buf)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(body))
+	}))
+	defer srv.Close()
+
+	p := newAnthropicProviderWithBaseURL("anthropic", "test-key", "", srv.URL)
+
+	resp, err := p.Chat(context.Background(), ChatRequest{
+		Messages: []Message{
+			NewTextMessage("system", "long stable system prompt..."),
+			NewTextMessage("user", "hi"),
+		},
+		Options: map[string]any{"prompt_cache_system": true},
+	})
+	if err != nil {
+		t.Fatalf("Chat: %v", err)
+	}
+	if resp.Usage == nil {
+		t.Fatal("Usage is nil")
+	}
+	if resp.Usage.CacheCreationTokens != 1024 {
+		t.Errorf("CacheCreationTokens = %d, want 1024", resp.Usage.CacheCreationTokens)
+	}
+	if resp.Usage.CacheReadTokens != 2048 {
+		t.Errorf("CacheReadTokens = %d, want 2048", resp.Usage.CacheReadTokens)
+	}
+}
