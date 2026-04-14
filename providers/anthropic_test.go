@@ -2,6 +2,8 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -97,5 +99,66 @@ func TestAnthropicProvider_ChatStream_Text(t *testing.T) {
 	}
 	if resp.FinishReason != "end_turn" {
 		t.Errorf("FinishReason = %q, want %q", resp.FinishReason, "end_turn")
+	}
+}
+
+func TestAnthropicProvider_Chat_ToolCall(t *testing.T) {
+	body := `{
+		"id": "msg_tool_1",
+		"type": "message",
+		"role": "assistant",
+		"model": "claude-opus-4-6",
+		"content": [
+			{"type": "text", "text": "I'll check the weather."},
+			{"type": "tool_use", "id": "toolu_abc", "name": "get_weather",
+			 "input": {"location": "San Francisco, CA"}}
+		],
+		"stop_reason": "tool_use",
+		"usage": {"input_tokens": 20, "output_tokens": 15}
+	}`
+	var requestBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestBody, _ = io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(body))
+	}))
+	defer srv.Close()
+
+	p := newAnthropicProviderWithBaseURL("anthropic", "test-key", "", srv.URL)
+
+	resp, err := p.Chat(context.Background(), ChatRequest{
+		Messages: []Message{NewTextMessage("user", "weather?")},
+		Tools: []ToolDefinition{{
+			Type: "function",
+			Function: ToolFunctionSchema{
+				Name:        "get_weather",
+				Description: "Get current weather",
+				Parameters:  json.RawMessage(`{"type":"object","properties":{"location":{"type":"string"}},"required":["location"]}`),
+			},
+		}},
+	})
+	// Verify the outbound request carried the tool definition.
+	if !strings.Contains(string(requestBody), `"name":"get_weather"`) {
+		t.Errorf("request body missing tool definition; got: %s", requestBody)
+	}
+	if !strings.Contains(string(requestBody), `"location"`) {
+		t.Errorf("request body missing tool input schema; got: %s", requestBody)
+	}
+	if err != nil {
+		t.Fatalf("Chat: %v", err)
+	}
+
+	if len(resp.ToolCalls) != 1 {
+		t.Fatalf("ToolCalls count = %d, want 1", len(resp.ToolCalls))
+	}
+	call := resp.ToolCalls[0]
+	if call.ID != "toolu_abc" || call.Function.Name != "get_weather" {
+		t.Errorf("ToolCall = %+v", call)
+	}
+	if !strings.Contains(call.Function.Arguments, "San Francisco") {
+		t.Errorf("Arguments = %q, want to contain 'San Francisco'", call.Function.Arguments)
+	}
+	if resp.FinishReason != "tool_use" {
+		t.Errorf("FinishReason = %q, want tool_use", resp.FinishReason)
 	}
 }

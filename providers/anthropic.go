@@ -151,6 +151,38 @@ func (p *AnthropicProvider) buildMessageParams(req ChatRequest) (anthropic.Messa
 	if systemText != "" {
 		params.System = []anthropic.TextBlockParam{{Text: systemText}}
 	}
+
+	if len(req.Tools) > 0 {
+		anthTools := make([]anthropic.ToolUnionParam, 0, len(req.Tools))
+		for _, td := range req.Tools {
+			schema := anthropic.ToolInputSchemaParam{}
+			if len(td.Function.Parameters) > 0 {
+				var raw map[string]any
+				if err := json.Unmarshal(td.Function.Parameters, &raw); err != nil {
+					return anthropic.MessageNewParams{}, fmt.Errorf("anthropic: tool %q parameters: %w", td.Function.Name, err)
+				}
+				if props, ok := raw["properties"]; ok {
+					schema.Properties = props
+				}
+				if required, ok := raw["required"].([]any); ok {
+					for _, r := range required {
+						if s, ok := r.(string); ok {
+							schema.Required = append(schema.Required, s)
+						}
+					}
+				}
+			}
+			tp := anthropic.ToolParam{
+				Name:        td.Function.Name,
+				InputSchema: schema,
+			}
+			if td.Function.Description != "" {
+				tp.Description = anthropic.String(td.Function.Description)
+			}
+			anthTools = append(anthTools, anthropic.ToolUnionParam{OfTool: &tp})
+		}
+		params.Tools = anthTools
+	}
 	return params, nil
 }
 
