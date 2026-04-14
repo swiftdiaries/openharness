@@ -2,7 +2,9 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -56,10 +58,118 @@ func newAnthropicProviderWithBaseURL(name, apiKey, defaultModel, baseURL string)
 func (p *AnthropicProvider) Name() string         { return p.name }
 func (p *AnthropicProvider) DefaultModel() string { return p.defaultModel }
 
+// Chat sends a non-streaming Messages request and returns a ChatResponse.
+// System prompts are drawn from any message with role "system" (concatenated
+// with blank-line separators) and passed via MessageNewParams.System.
 func (p *AnthropicProvider) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
-	return nil, fmt.Errorf("anthropic: Chat not yet implemented")
+	params, err := p.buildMessageParams(req)
+	if err != nil {
+		return nil, err
+	}
+
+	msg, err := p.client.Messages.New(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("anthropic chat: %w", err)
+	}
+
+	return p.messageToChatResponse(msg), nil
 }
 
 func (p *AnthropicProvider) ChatStream(ctx context.Context, req ChatRequest, onChunk func(StreamChunk)) (*ChatResponse, error) {
 	return nil, fmt.Errorf("anthropic: ChatStream not yet implemented")
+}
+
+// buildMessageParams translates a ChatRequest into anthropic.MessageNewParams.
+// Messages with role == "system" are hoisted into params.System; all others
+// become MessageParam entries (user or assistant).
+func (p *AnthropicProvider) buildMessageParams(req ChatRequest) (anthropic.MessageNewParams, error) {
+	model := req.Model
+	if model == "" {
+		model = p.defaultModel
+	}
+	// Strip any routing prefix like "openrouter/anthropic/".
+	_, model = ParseModelString(p.name, model)
+
+	var systemText string
+	userOrAssistant := make([]anthropic.MessageParam, 0, len(req.Messages))
+	for _, m := range req.Messages {
+		text, err := textFromRawContent(m.Content)
+		if err != nil {
+			return anthropic.MessageNewParams{}, err
+		}
+		switch m.Role {
+		case "system":
+			if systemText != "" {
+				systemText += "\n\n"
+			}
+			systemText += text
+		case "user":
+			userOrAssistant = append(userOrAssistant, anthropic.NewUserMessage(anthropic.NewTextBlock(text)))
+		case "assistant":
+			userOrAssistant = append(userOrAssistant, anthropic.NewAssistantMessage(anthropic.NewTextBlock(text)))
+		default:
+			return anthropic.MessageNewParams{}, fmt.Errorf("anthropic: unsupported message role %q", m.Role)
+		}
+	}
+
+	params := anthropic.MessageNewParams{
+		Model:     anthropic.Model(model),
+		MaxTokens: 4096,
+		Messages:  userOrAssistant,
+	}
+	if systemText != "" {
+		params.System = []anthropic.TextBlockParam{{Text: systemText}}
+	}
+	return params, nil
+}
+
+// textFromRawContent unmarshals a Message.Content json.RawMessage into a
+// plain string. If the RawMessage is already a JSON string, we use it
+// directly; otherwise we fall back to the raw bytes.
+func textFromRawContent(raw json.RawMessage) (string, error) {
+	if len(raw) == 0 {
+		return "", nil
+	}
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		return s, nil
+	}
+	return string(raw), nil
+}
+
+// messageToChatResponse translates an anthropic.Message into our ChatResponse shape.
+func (p *AnthropicProvider) messageToChatResponse(msg *anthropic.Message) *ChatResponse {
+	resp := &ChatResponse{
+		ID:           msg.ID,
+		FinishReason: string(msg.StopReason),
+	}
+
+	var textParts []string
+	for _, block := range msg.Content {
+		switch block.Type {
+		case "text":
+			textParts = append(textParts, block.Text)
+		case "tool_use":
+			resp.ToolCalls = append(resp.ToolCalls, ToolCall{
+				ID:   block.ID,
+				Type: "function",
+				Function: FunctionCall{
+					Name:      block.Name,
+					Arguments: string(block.Input),
+				},
+			})
+		}
+	}
+	if len(textParts) > 0 {
+		resp.Content = strings.Join(textParts, "")
+	}
+
+	resp.Usage = &Usage{
+		PromptTokens:        int(msg.Usage.InputTokens),
+		CompletionTokens:    int(msg.Usage.OutputTokens),
+		TotalTokens:         int(msg.Usage.InputTokens + msg.Usage.OutputTokens),
+		CacheCreationTokens: int(msg.Usage.CacheCreationInputTokens),
+		CacheReadTokens:     int(msg.Usage.CacheReadInputTokens),
+	}
+	return resp
 }
