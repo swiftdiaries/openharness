@@ -8,15 +8,14 @@ import (
 	"strings"
 )
 
-// ResolveAPIKey resolves an API key value.
+// ResolveAPIKey resolves an API key value without a secret-store.
 //   - "$ENV_VAR" → reads from environment
 //   - ""         → falls back to os.Getenv(fallbackEnv)
 //   - anything else → returned as-is (literal key)
 //
-// NOTE: the ghostfin-era "keychain:<account>" scheme is not supported here;
-// secret-store integration is tracked as a fast-follow (see the task filed at
-// the end of Plan 2). In the interim, vertical apps should pass resolved
-// literal keys or $ENV_VAR references at registration time.
+// Callers that need OS-keyring / Vault / secret-manager backends should use
+// ResolveAPIKeyWithStore, which additionally understands the "secret:<name>"
+// scheme via harness.SecretStore.
 func ResolveAPIKey(key, fallbackEnv string) string {
 	if key == "" {
 		return os.Getenv(fallbackEnv)
