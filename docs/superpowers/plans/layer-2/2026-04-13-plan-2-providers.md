@@ -30,13 +30,13 @@
 | Task 4: Move `providers/registry.go` + test | `openharness-oe8` | closed |
 | Task 5: Move `providers/openai_compat.go` + test | `openharness-xyc` | closed |
 | Task 6: Move `providers/openrouter.go` + test (drop keychain dep) | `openharness-8zj` | closed |
-| Task 7: `providers/anthropic.go` skeleton + constructor test | `openharness-x9g` | open |
-| Task 8: `anthropic.go` non-streaming `Chat` (text response) | `openharness-78y` | open |
-| Task 9: `anthropic.go` streaming `ChatStream` (text deltas) | `openharness-bl0` | open |
-| Task 10: `anthropic.go` tool-call reassembly | `openharness-32t` | open |
-| Task 11: `anthropic.go` prompt caching + cache-token accounting | `openharness-2v0` | open |
-| Task 12: `anthropic.go` error handling + retry semantics | `openharness-d31` | open |
-| Task 13: Final verification, lint, push | `openharness-bup` | open |
+| Task 7: `providers/anthropic.go` skeleton + constructor test | `openharness-x9g` | closed |
+| Task 8: `anthropic.go` non-streaming `Chat` (text response) | `openharness-78y` | closed |
+| Task 9: `anthropic.go` streaming `ChatStream` (text deltas) | `openharness-bl0` | closed |
+| Task 10: `anthropic.go` tool-call reassembly | `openharness-32t` | closed |
+| Task 11: `anthropic.go` prompt caching + cache-token accounting | `openharness-2v0` | closed |
+| Task 12: `anthropic.go` error handling + retry semantics | `openharness-d31` | closed |
+| Task 13: Final verification, lint, push | `openharness-bup` | in_progress |
 
 **Before Task 1:** create a beads epic and the 13 tasks above. Claim each task before starting it and close it after its commit lands.
 
