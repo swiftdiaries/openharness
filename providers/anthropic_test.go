@@ -210,3 +210,42 @@ func TestAnthropicProvider_Chat_CacheTokens(t *testing.T) {
 		t.Errorf("CacheReadTokens = %d, want 2048", resp.Usage.CacheReadTokens)
 	}
 }
+
+func TestAnthropicProvider_Chat_HTTPError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(`{"type":"error","error":{"type":"internal_server_error","message":"boom"}}`))
+	}))
+	defer srv.Close()
+
+	p := newAnthropicProviderWithBaseURL("anthropic", "test-key", "", srv.URL)
+
+	_, err := p.Chat(context.Background(), ChatRequest{
+		Messages: []Message{NewTextMessage("user", "hi")},
+	})
+	if err == nil {
+		t.Fatal("expected error on 500, got nil")
+	}
+	if !strings.Contains(err.Error(), "anthropic") {
+		t.Errorf("error missing 'anthropic' tag: %v", err)
+	}
+}
+
+func TestAnthropicProvider_ChatStream_StreamError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(200)
+		_ = writeSSEEvent(w, "message_start",
+			`{"type":"message_start","message":{"id":"x","type":"message","role":"assistant","model":"claude-opus-4-6","content":[],"usage":{"input_tokens":1,"output_tokens":0}}}`)
+		_ = writeSSEEvent(w, "error", `{"type":"error","error":{"type":"overloaded_error","message":"server busy"}}`)
+	}))
+	defer srv.Close()
+
+	p := newAnthropicProviderWithBaseURL("anthropic", "test-key", "", srv.URL)
+	_, err := p.ChatStream(context.Background(), ChatRequest{
+		Messages: []Message{NewTextMessage("user", "hi")},
+	}, func(StreamChunk) {})
+	if err == nil {
+		t.Fatal("expected stream error, got nil")
+	}
+}
