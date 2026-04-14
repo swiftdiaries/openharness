@@ -19,24 +19,27 @@
 | Field | Value |
 |-------|-------|
 | Epic | `openharness-ssx` |
-| Status | in_progress |
-| Worktree | (pending) |
+| Status | complete (PR #2) |
+| Worktree | `.worktrees/plan-2-providers` (branch: `feat/layer-2-plan-2-providers`) |
+| PR | https://github.com/swiftdiaries/openharness/pull/2 |
+| Fast-follow | `openharness-1cu` — `ResolveAPIKeyWithStore` + `secret:<name>` scheme (landed in the same PR) |
 
 | Task | Beads ID | Status |
 |------|----------|--------|
-| Task 1: Worktree sanity + add Anthropic SDK dep | `openharness-qwi` | open |
-| Task 2: Move `providers/types.go` | `openharness-by6` | open |
-| Task 3: Move `providers/models.go` | `openharness-c31` | open |
-| Task 4: Move `providers/registry.go` + test | `openharness-oe8` | open |
-| Task 5: Move `providers/openai_compat.go` + test | `openharness-xyc` | open |
-| Task 6: Move `providers/openrouter.go` + test (drop keychain dep) | `openharness-8zj` | open |
-| Task 7: `providers/anthropic.go` skeleton + constructor test | `openharness-x9g` | open |
-| Task 8: `anthropic.go` non-streaming `Chat` (text response) | `openharness-78y` | open |
-| Task 9: `anthropic.go` streaming `ChatStream` (text deltas) | `openharness-bl0` | open |
-| Task 10: `anthropic.go` tool-call reassembly | `openharness-32t` | open |
-| Task 11: `anthropic.go` prompt caching + cache-token accounting | `openharness-2v0` | open |
-| Task 12: `anthropic.go` error handling + retry semantics | `openharness-d31` | open |
-| Task 13: Final verification, lint, push | `openharness-bup` | open |
+| Task 1: Worktree sanity + add Anthropic SDK dep | `openharness-qwi` | closed |
+| Task 2: Move `providers/types.go` | `openharness-by6` | closed |
+| Task 3: Move `providers/models.go` | `openharness-c31` | closed |
+| Task 4: Move `providers/registry.go` + test | `openharness-oe8` | closed |
+| Task 5: Move `providers/openai_compat.go` + test | `openharness-xyc` | closed |
+| Task 6: Move `providers/openrouter.go` + test (drop keychain dep) | `openharness-8zj` | closed |
+| Task 7: `providers/anthropic.go` skeleton + constructor test | `openharness-x9g` | closed |
+| Task 8: `anthropic.go` non-streaming `Chat` (text response) | `openharness-78y` | closed |
+| Task 9: `anthropic.go` streaming `ChatStream` (text deltas) | `openharness-bl0` | closed |
+| Task 10: `anthropic.go` tool-call reassembly | `openharness-32t` | closed |
+| Task 11: `anthropic.go` prompt caching + cache-token accounting | `openharness-2v0` | closed |
+| Task 12: `anthropic.go` error handling + retry semantics | `openharness-d31` | closed |
+| Task 13: Final verification, lint, push | `openharness-bup` | closed |
+| Fast-follow: `ResolveAPIKeyWithStore` + `secret:` scheme | `openharness-1cu` | closed |
 
 **Before Task 1:** create a beads epic and the 13 tasks above. Claim each task before starting it and close it after its commit lands.
 
@@ -1348,7 +1351,7 @@ EOF
 **Open concerns flagged for the executor:**
 
 - **SDK symbol drift.** The plan's code blocks reference field names (`Message.Usage.CacheCreationInputTokens`, `stream.Current().AsAny()`, `ContentBlockDeltaEvent`, `TextDelta`, `CacheControlEphemeralParam`, `ToolUnionParam`, `ToolParam`, `ToolInputSchemaParam`, `option.WithAPIKey`, `option.WithBaseURL`) taken from the context7 snapshot of `/anthropics/anthropic-sdk-go`. If the pinned version has renamed any of these, executor MUST use `go doc` and adjust — **do not guess**. The tests are the source of truth for end-to-end behavior; the SDK just has to deliver the shapes the tests assert.
-- **Keychain scheme drop.** Task 6 Step 3 deletes the `keychain:` branch from `ResolveAPIKey`. Fast-follow filed in Task 13 Step 5. Ghostfin's Plan 7 rewrite will need to pass resolved keys into openharness.
+- **Keychain scheme drop.** Task 6 Step 3 deleted the `keychain:` branch from `ResolveAPIKey`. The fast-follow (`openharness-1cu`) landed in the same PR as `providers/secret.go`: callers now use `ResolveAPIKeyWithStore(ctx, store, key, fallbackEnv)` with a `harness.SecretStore`, and keys of the form `secret:<name>` are resolved via `SecretStore.GetCredentials`. Ghostfin's Plan 7 rewrite wires a concrete keychain-backed `SecretStore` implementation.
 
 ---
 
