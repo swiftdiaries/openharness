@@ -49,13 +49,13 @@ Status snapshot. Updated as layers ship.
 | Layer | Status | Spec | Plan(s) | Release |
 |-------|--------|------|---------|---------|
 | Layer 1 — harness boundary | ✓ shipped | (this doc, §Layer 1) | [`plans/2026-04-10-openharness-extraction-layer1.md`](../plans/2026-04-10-openharness-extraction-layer1.md) | [v0.1.0](https://github.com/swiftdiaries/openharness/releases/tag/v0.1.0) |
-| Layer 2 — agent primitives | in progress (Plans 1–2 merged; Plan 3 next) | [`specs/2026-04-13-openharness-layer-2-agent-primitives-design.md`](2026-04-13-openharness-layer-2-agent-primitives-design.md), [`specs/2026-04-16-plan-3-tools-design.md`](2026-04-16-plan-3-tools-design.md) | [`plans/layer-2/2026-04-13-execution-order.md`](../plans/layer-2/2026-04-13-execution-order.md) + per-plan | v0.2.0 (pending) |
+| Layer 2 — agent primitives | in progress (Plans 1–3 merged; Plan 4 next) | [`specs/2026-04-13-openharness-layer-2-agent-primitives-design.md`](2026-04-13-openharness-layer-2-agent-primitives-design.md), [`specs/2026-04-16-plan-3-tools-design.md`](2026-04-16-plan-3-tools-design.md) | [`plans/layer-2/2026-04-13-execution-order.md`](../plans/layer-2/2026-04-13-execution-order.md) + per-plan | v0.2.0 (pending) |
 | Layer 3 — infrastructure | not started | — (spec TBD) | — | — |
 | Layer 4 — app scaffold | not started | — (spec TBD) | — | — |
 | Layer 5 — enterprise implementations | not started | — (spec TBD) | — | — |
 | Layer 6 — end-user SDK | design complete | [`specs/2026-04-17-layer-6-sdk-design.md`](2026-04-17-layer-6-sdk-design.md) | — | — |
 
-**Next unblocked work:** Layer 2 Plan 3 — write implementation plan from `specs/2026-04-16-plan-3-tools-design.md` (resolve the 5 adversarial-review blockers first), then execute.
+**Next unblocked work:** Layer 2 Plan 4 — MCP outbound + UIBridge. Plan 3 (tools) merged.
 
 **Tracking:** beads epic `openharness-pol`. Each layer is a child feature (`openharness-pol.1` … `openharness-pol.6`); Layer 2 plans are grandchildren (`openharness-pol.2.1` … `openharness-pol.2.8`). Useful commands:
 

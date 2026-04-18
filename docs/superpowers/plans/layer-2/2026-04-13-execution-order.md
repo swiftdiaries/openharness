@@ -153,6 +153,8 @@ If any of these fail, fix before starting Layer 2 — the migration assumes a gr
 - [ ] Run: `cd openharness && go test ./... -v` — all passing
 - [ ] Tag: `git tag layer-2-wave-2`
 
+**Status: Plan 3 implementation complete (2026-04-18).** See [`2026-04-18-plan-3-tools-implementation.md`](2026-04-18-plan-3-tools-implementation.md) — 22 tasks landed on `feat/layer-2-plan-3-tools`; go test ./... -race and go vet green; 17-row D4 Effects matrix verified.
+
 ---
 
 ## Wave 3: Plan 4 — MCP

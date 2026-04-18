@@ -7,7 +7,8 @@
 | Field | Value |
 |-------|-------|
 | Epic | `openharness-pol.2.3` |
-| Status | in_progress |
+| Status | complete |
+| Completed | 2026-04-18 |
 | Worktree | `.worktrees/layer-2-plan-3-tools` (branch: `feat/layer-2-plan-3-tools`) |
 
 | Task | Beads ID | Status |
@@ -28,12 +29,12 @@
 | T14: knowledge_graph types | `openharness-8y8` | closed |
 | T15: knowledge_graph built-in | `openharness-npc` | closed |
 | T16: subagent built-in | `openharness-h53` | closed |
-| T17: core.Register + Config | `openharness-3an` | open |
-| T18: Integration test — D4 matrix + contract assertions | `openharness-8tv` | open |
-| T19 (V1): Dependency-direction verification | `openharness-fun` | open |
-| T20 (V2): Full test suite green + vet clean | `openharness-7p5` | open |
-| T21: Update Progress table in extraction spec | `openharness-2ft` | open |
-| T22: Close beads issue + push | `openharness-zt6` | open |
+| T17: core.Register + Config | `openharness-3an` | closed |
+| T18: Integration test — D4 matrix + contract assertions | `openharness-8tv` | closed |
+| T19 (V1): Dependency-direction verification | `openharness-fun` | closed |
+| T20 (V2): Full test suite green + vet clean | `openharness-7p5` | closed |
+| T21: Update Progress table in extraction spec | `openharness-2ft` | closed |
+| T22: Close beads issue + push | `openharness-zt6` | in_progress |
 
 ---
 
