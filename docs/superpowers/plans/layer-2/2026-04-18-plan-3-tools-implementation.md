@@ -21,9 +21,9 @@
 | T7: web_search built-in | `openharness-bgy` | closed |
 | T8: web_fetch built-in | `openharness-66i` | closed |
 | T9: filesystem built-in | `openharness-im2` | closed |
-| T10: exec built-in | `openharness-lc7` | open |
-| T11: ask_user built-in | `openharness-kb7` | open |
-| T12: tasks built-in | `openharness-bf1` | open |
+| T10: exec built-in | `openharness-lc7` | closed |
+| T11: ask_user built-in | `openharness-kb7` | closed |
+| T12: tasks built-in | `openharness-bf1` | closed |
 | T13: memory built-in (interface reconciliation) | `openharness-t89` | open |
 | T14: knowledge_graph types | `openharness-8y8` | closed |
 | T15: knowledge_graph built-in | `openharness-npc` | open |
