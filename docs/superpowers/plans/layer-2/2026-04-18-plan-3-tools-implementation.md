@@ -34,7 +34,7 @@
 | T19 (V1): Dependency-direction verification | `openharness-fun` | closed |
 | T20 (V2): Full test suite green + vet clean | `openharness-7p5` | closed |
 | T21: Update Progress table in extraction spec | `openharness-2ft` | closed |
-| T22: Close beads issue + push | `openharness-zt6` | in_progress |
+| T22: Close beads issue + push | `openharness-zt6` | closed (PR #3) |
 
 ---
 
