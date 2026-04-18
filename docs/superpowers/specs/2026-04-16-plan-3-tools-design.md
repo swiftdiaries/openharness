@@ -225,3 +225,153 @@ After core lands: `web_search`, `web_fetch`, `filesystem`, `exec`, `ask_user`, `
 - notes.Store adapter methods — that's Plan 7
 - Actual subagent execution — that's Layer 4 (gateway)
 - Storage backend abstraction for Memory tool — future Layer 3+
+
+---
+
+## Adversarial Review (2026-04-16)
+
+Review conducted after brainstorming against ground-truth: Plan 1's shipped `openharness/agent/` package, the parent spec, the execution-order doc, and the actual ghostfin source files listed in the File Inventory. Findings are grouped by severity. Blockers should be resolved in this spec before implementation; hard questions should be answered before the enum/struct shapes freeze; nits should be addressed during implementation.
+
+### Blockers
+
+#### B1. Memory data migration is unacknowledged and types don't line up
+
+Plan 1 (merged) shipped:
+
+```go
+type MemoryEntry struct {
+    Key       string
+    Value     string
+    UpdatedAt time.Time
+}
+```
+
+Ghostfin's live `internal/tools/memory.go` uses:
+
+```go
+type MemoryEntry struct {
+    Key       string `json:"key"`
+    Content   string `json:"content"`
+    Category  string `json:"category"`
+    CreatedAt string `json:"created_at"`
+}
+```
+
+D2 says "use `agent.MemoryEntry` throughout" but does not address:
+- **Existing `~/.ghostfin/data/memory.json` files cannot round-trip.** Field names and the `created_at` type (string vs `time.Time`) both differ. Any upgrading user loses their stored memory on first boot.
+- **`Category` is dropped** — but the `memory_store` tool JSON schema still accepts a `category` parameter. Silent behavior change unless explicitly dropped from the schema too.
+- **`CreatedAt` vs `UpdatedAt`** are different semantics (append-only vs mutable). The spec doesn't say which wins.
+
+**Resolution required:** Add a "Memory migration" subsection that either (a) ships a one-shot JSON reader that upgrades old entries in place, or (b) declares the break explicitly in migration notes (matching how the spec treats MCP OAuth re-auth at parent-spec §"MCP OAuth via SecretStore"). Silently breaking user data is worse than either option.
+
+#### B2. `agent.MemoryStore` is one method — the `var _` assertion is almost empty
+
+```go
+type MemoryStore interface {
+    Search(ctx context.Context, query string, limit int) ([]MemoryEntry, error)
+}
+```
+
+D2 promises `var _ agent.MemoryStore = (*Memory)(nil)`. Satisfying this requires the memory tool to expose a method named *exactly* `Search(ctx, string, int) ([]agent.MemoryEntry, error)`. Ghostfin today exports `SearchEntries(query string, limit int) ([]MemoryEntry, error)` — different name, no ctx, local return type.
+
+So the migration actually:
+1. Renames `SearchEntries` → `Search` (grep callers before doing this).
+2. Adds `ctx` the body currently ignores.
+3. Switches the element type, forcing internal rewiring.
+
+None of this is wrong, but "use `agent.MemoryEntry` throughout" undersells it. Additionally, the interface contract does not pin the *algorithm* — Plan 5's `retrieval.go` depends on whatever `Search` returns, and the memory tool's current substring-match semantics must be preserved verbatim or retrieval quality silently regresses.
+
+**Resolution required:** Commit explicitly that `Search` preserves existing `SearchEntries` scoring/matching behavior. Add `builtin/memory_test.go` (new file — see B5) that pins this.
+
+#### B3. "Effects defaults to Read (conservative)" is backwards
+
+D4 says:
+> `ToolEffectRead` is the zero value — unclassified tools default to Read (conservative: doesn't reset read streaks).
+
+This is the wrong direction on safety. An *unknown* tool defaulting to Read means:
+- The loop detector treats it as streak-safe — the agent can invoke a tool that actually mutates many times in a row without tripping the read-streak guard.
+- The mode filter allows it in `ModePlan` (which is supposed to be read-only).
+
+Both are safety regressions for any tool the author forgets to classify. Ghostfin's current `tool_loop.go` also has an explicit "neither reset nor increment" path for `exec` (line 161) — a neutral category that Plan 3's two-state-plus-Interactive enum erases.
+
+**Resolution required:** Pick one:
+- Option A — zero value is `ToolEffectMutate`: unknown tools treated as scariest, which is correct for both consumers.
+- Option B — introduce `ToolEffectUnspecified` as the zero value; `Registry.EffectsFor` returns an error (or panics at registration) on unclassified definitions, forcing explicit classification.
+- Option C — preserve the "neutral" exec behavior by adding a fourth state, and commit its semantics for both `tool_loop.go` and `mode.go`.
+
+#### B4. `tasks.go` build-tag handling is underspecified
+
+Ground truth from ghostfin:
+- `internal/tools/tasks.go` → `//go:build sqliteonly`
+- `internal/tools/tasks_test.go` → same tag
+- `internal/tools/registry.go` → same tag
+- `internal/tools/builtin.go` → same tag
+
+Plan 3 says "strip sqliteonly" generically. Open questions:
+- If `tasks.go` uses `database/sql` + a SQLite driver, stripping the tag makes `openharness/tools/builtin` unconditionally depend on SQLite. Is that the Layer 2 rule?
+- If the tag is stripped from source but left on `tasks_test.go`, the test never runs in openharness CI (no `sqliteonly` tag in this module). Coverage silently vanishes.
+- Execution-order note #3 preserves build tags for `sessions/pg_store.go` because it's platform-dependent. Why is tasks different? The inconsistency needs a rationale.
+
+**Resolution required:** Pick a rule and apply uniformly:
+- Recommended: `tasks` compiles unconditionally in openharness with a SQLite dependency (Layer 3 can re-abstract); `sessions/pg_store.go` keeps its `!sqliteonly` guard because it's genuinely platform-dependent. State this in the spec.
+
+#### B5. Test files assumed by the File Inventory don't exist
+
+The "Test files to move" subsection lists `registry_test.go` (with sqliteonly-strip instructions) and implies `memory_test.go`. Neither exists in `ghostfin/desktop/internal/tools/` (verified 2026-04-16).
+
+Plan 3 performs the riskiest changes (type migration, interface assertion, constructor signature change) to the `memory` tool — with zero existing test coverage. 
+
+**Resolution required:** Update the File Inventory:
+- Add `builtin/memory_test.go` as a **new file** to author. Coverage must include: old-JSON-format compatibility (per B1 resolution), `agent.MemoryStore` satisfaction, `Search` semantics preservation.
+- Either drop `registry_test.go` from the "move" list or add it as a new file.
+
+### Hard questions to resolve before enum/struct shapes freeze
+
+#### Q1. `Registry.EffectsFor(name)` — algorithm and caching
+
+A Tool publishes multiple Definitions (`filesystem` → 4). Ghostfin's Registry indexes every def-name to its owning Tool. `EffectsFor(name)` therefore must (a) find the owning Tool, (b) walk `Definitions()` to find the matching def, (c) return its `Effects`. Either describe this algorithm or build a `map[defName]ToolEffect` at register time — Plan 5 will call this in the loop-detection hot path.
+
+#### Q2. `Visibility` field — in Plan 3 or Plan 4?
+
+Parent spec (key decision 6) commits `ToolDefinition.Visibility ToolVisibility` alongside `Effects`. Plan 3 drops it. Adding it in Plan 4 churns `ToolDefinition` again — a struct that Plan 3 is supposed to freeze. Decide now: land both fields together (cheap; keeps the shape stable), or state explicitly "Visibility deferred to Plan 4" with rationale.
+
+#### Q3. `ToolEffectInteractive` semantics for both consumers
+
+D4 marks `ask_user` as Interactive — a third category. Does Interactive reset the read-streak? Is it allowed in `ModePlan`? Plan 5 is where these wire up, but Plan 3 freezes the enum. If Plan 5 needs a fourth value or a bitfield, the enum gets redone. Commit semantics now.
+
+#### Q4. `SubagentTool`'s post-Layer-4 shape
+
+`SubagentConfig` drops registry + tracker from the constructor. Layer 4's gateway will need a registry, an LLM runner, and probably a `TraceRecorder` to actually execute subagents. So `SubagentTool`'s public surface will grow again.
+
+**Resolution:** Add a sentence to D3: "Plan 3's `SubagentTool` stores configuration only and is not a frozen contract; Layer 4 will add execution wiring."
+
+#### Q5. `KGBlock/KGPage/KGRef` — "field-compatible" is imprecise
+
+Go has no structural subtyping for structs. Even identical field sets require explicit conversion. D1 actually means "field-*convertible*" — Plan 7's adapter methods will do `kgb := KGBlock{ID: nb.ID, Title: nb.Title, …}`. Additionally:
+- `notes.Block` has 9 fields; `notes.Page` embeds `Block` + 3 more. Do the openharness types embed or flatten?
+- The minimum viable field set for each KG type is not specified. Plan 7's adapter can't be written against a contract that doesn't exist yet.
+
+**Resolution:** List the exact field set for each of `KGBlock`, `KGPage`, `KGRef`. Decide embed-vs-flatten.
+
+### Nits and missing rationale
+
+- **`Register(r, cfg) error` — dead return.** D5 admits no current validation. YAGNI. Return `void` now; add an error-returning variant when needed. An unused error return invites `_ = Register(...)` at every callsite.
+- **`Config.Subagent` as top-level.** Only two built-ins (Subagent, KnowledgeStore) get first-class Config fields; the rest take path strings. If future tools need config (Memory TTL, Tasks quota), the struct grows forever. Consider nested `BuiltinsConfig{Subagent, Memory, Tasks}` or option functions. Not a blocker — add one sentence of rationale.
+- **Package name `builtin`.** Not reserved, but collides mentally with the stdlib `builtin` package. Consider `std` or `core`. Cheap rename; do it before any callers exist.
+- **Zero-value SubagentConfig semantics.** D3 says "empty map omits the tool." A JSON schema enum with zero entries is invalid, so `Register` must conditionally skip when `len(cfg.Subagent.Subagents) == 0`. Spell this out.
+- **Dependency direction claim.** "tools → stdlib only" is inaccurate: `web_search.go` and `web_fetch.go` import `golang.org/x/net/html`. Update to "stdlib + golang.org/x/net".
+
+### Verification section gaps
+
+Current list is too weak. Add:
+- **Matrix test at the definition level** (not just tool level): every row of the D4 table → one assertion. 12 rows → 12 test cases.
+- **`EffectsFor("unknown_tool")` contract test** — returns the default? Returns an error? Make it explicit.
+- **Memory-tool round-trip test** — write entry, restart, read back. Gates B1's migration path.
+- **Loop-detection parity invariant** — Plan 3 declares the invariant ("classifier output must match the existing hardcoded allowlist for the 4 current entries"), Plan 5 runs the real fixture test.
+
+### What this review does NOT cover
+
+- Plan 4 (MCP) interactions beyond the `Visibility` field question.
+- Plan 5 (agent loop) wiring correctness — only Plan 3's committed contracts as inputs to Plan 5.
+- Plan 7 (ghostfin rewrite) — assumed to handle the ghostfin-side migration once B1's path is chosen.
+- Performance of `EffectsFor` — only structural correctness.

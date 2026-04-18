@@ -42,6 +42,31 @@ Today, building a new vertical means forking the entire ghostfin desktop codebas
 
 ---
 
+## Progress
+
+Status snapshot. Updated as layers ship.
+
+| Layer | Status | Spec | Plan(s) | Release |
+|-------|--------|------|---------|---------|
+| Layer 1 — harness boundary | ✓ shipped | (this doc, §Layer 1) | [`plans/2026-04-10-openharness-extraction-layer1.md`](../plans/2026-04-10-openharness-extraction-layer1.md) | [v0.1.0](https://github.com/swiftdiaries/openharness/releases/tag/v0.1.0) |
+| Layer 2 — agent primitives | in progress (Plans 1–2 merged; Plan 3 next) | [`specs/2026-04-13-openharness-layer-2-agent-primitives-design.md`](2026-04-13-openharness-layer-2-agent-primitives-design.md), [`specs/2026-04-16-plan-3-tools-design.md`](2026-04-16-plan-3-tools-design.md) | [`plans/layer-2/2026-04-13-execution-order.md`](../plans/layer-2/2026-04-13-execution-order.md) + per-plan | v0.2.0 (pending) |
+| Layer 3 — infrastructure | not started | — (spec TBD) | — | — |
+| Layer 4 — app scaffold | not started | — (spec TBD) | — | — |
+| Layer 5 — enterprise implementations | not started | — (spec TBD) | — | — |
+| Layer 6 — end-user SDK | design complete | [`specs/2026-04-17-layer-6-sdk-design.md`](2026-04-17-layer-6-sdk-design.md) | — | — |
+
+**Next unblocked work:** Layer 2 Plan 3 — write implementation plan from `specs/2026-04-16-plan-3-tools-design.md` (resolve the 5 adversarial-review blockers first), then execute.
+
+**Tracking:** beads epic `openharness-pol`. Each layer is a child feature (`openharness-pol.1` … `openharness-pol.6`); Layer 2 plans are grandchildren (`openharness-pol.2.1` … `openharness-pol.2.8`). Useful commands:
+
+- `bd ready` — next unblocked work
+- `bd graph openharness-pol.6` — full layer chain (L1 → L6)
+- `bd graph openharness-pol.2.8` — Layer 2 plan chain
+- `bd list --parent=openharness-pol --all` — all layer children
+- `bd list --parent=openharness-pol.2 --all` — all Layer 2 plan children
+
+---
+
 ## System Architecture
 
 ### Three-Repo Model
@@ -354,9 +379,9 @@ func main() {
 
 ---
 
-## Migration Strategy — 5 Layers
+## Migration Strategy — 6 Layers
 
-Incremental extraction from `ghostfin/desktop/` → `openharness/`. Each layer is an independent PR chain: extract code, update imports in ghostfin, verify tests pass.
+Incremental extraction from `ghostfin/desktop/` → `openharness/`. Each layer is an independent PR chain: extract code, update imports in ghostfin, verify tests pass. Layer 6 is additive — it builds the end-user SDK on top of the extracted framework rather than moving more code out of ghostfin.
 
 ### Layer 1: Harness Boundary (lowest risk)
 
@@ -415,6 +440,28 @@ Implement the generic enterprise backends:
 - `pg_metadata.go`, `otlp_sink.go` (enterprise tracing)
 
 `ghostfin-enterprise` shrinks to: Nile multi-tenant wiring, billing, finance-specific RBAC, management server.
+
+### Layer 6: End-User SDK
+
+**Source:** new; additive on top of Layers 1–5
+**Destination:** `openharness/api/` (HTTP+SSE contract), `openharness-sdk-go/` sibling modules, Enterprise durable-execution wiring
+
+**Depends on:** Layers 1–5. A Lite-only, in-process-transport slice can ship earlier (needs Layer 2 + the sessions/config bits of Layer 3); the full Enterprise path (HTTP server, DBOS durable execution, multi-tenant Postgres, Vault-backed Secrets) pulls in Layers 4–5.
+
+Layer 6 is the end-user SDK — how developers *outside* the framework consume openharness. Unlike Layers 1–5 (which move code out of ghostfin), Layer 6 is additive: it builds a versioned HTTP+JSON+SSE contract (`/v1`) with typed Go clients on top of the extracted framework.
+
+**One API contract, two transports, two deployment tiers:**
+- **Contract:** agent-centric resources (`Agents`, `AgentVersions`, `Sessions`, `Skills`, `Secrets`, `Webhooks`, `AuditEvents`, `Models`). Sessions stream events over SSE; input posts to `POST /sessions/{id}/messages`.
+- **Transports:** `openharness-sdk-go/httpclient` (HTTP+SSE) and `openharness-sdk-go/inprocess` (adapts `HarnessRunner.Dispatch` for Lite). Same typed client API over both.
+- **Tiers:** Lite (in-process, zero network, refuses non-loopback bind without `OPENHARNESS_DEV_KEY`) and Enterprise (k8s service, multi-tenant, DBOS-backed durable execution, Bearer-auth API keys).
+
+**Three tool types:** `builtin` (server-side), `mcp` (remote MCP URL server with SecretStore-backed headers), `custom` (schema declared on agent; invocation streams a `tool_use` event to the client which executes locally and posts `tool_result`).
+
+**Key controls:** `exec` is gated by a Sandbox admission rule (sandbox type + trust_mode); Secrets are KEK-wrapped via AWS KMS / GCP KMS / Vault; MCP egress routes through a deployment proxy with RFC1918/IMDS deny and TLS verification; sessions carry `max_tokens` / `max_usd` ceilings; `Idempotency-Key` required on `POST /sessions` and `POST /sessions/{id}/messages`.
+
+**Language rollout:** Go is the v1 deliverable (three modules: `openharness-sdk-go` types-only, `openharness-sdk-go/httpclient`, `openharness-sdk-go/inprocess`). TS/Python clients are codegen-ready via OpenAPI + event-schema artifacts but deferred until an Enterprise tenant or vertical asks.
+
+**Full design:** [`specs/2026-04-17-layer-6-sdk-design.md`](2026-04-17-layer-6-sdk-design.md).
 
 ---
 
