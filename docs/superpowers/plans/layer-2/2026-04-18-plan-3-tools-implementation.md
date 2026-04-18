@@ -12,12 +12,12 @@
 
 | Task | Beads ID | Status |
 |------|----------|--------|
-| T1: Establish branch + skeleton | `openharness-0bx` | open |
-| T2: Tool interface + enums | `openharness-wl1` | open |
-| T3: Registry with effects-aware registration | `openharness-7z7` | open |
-| T4: Composite | `openharness-z1d` | open |
-| T5: External content guard | `openharness-cz1` | open |
-| T6: Security helpers (SSRF, shell_deny, scrub) | `openharness-vet` | open |
+| T1: Establish branch + skeleton | `openharness-0bx` | closed |
+| T2: Tool interface + enums | `openharness-wl1` | closed |
+| T3: Registry with effects-aware registration | `openharness-7z7` | closed |
+| T4: Composite | `openharness-z1d` | closed |
+| T5: External content guard | `openharness-cz1` | closed |
+| T6: Security helpers (SSRF, shell_deny, scrub) | `openharness-vet` | closed |
 | T7: web_search built-in | `openharness-bgy` | open |
 | T8: web_fetch built-in | `openharness-66i` | open |
 | T9: filesystem built-in | `openharness-im2` | open |
