@@ -18,14 +18,14 @@
 | T4: Composite | `openharness-z1d` | closed |
 | T5: External content guard | `openharness-cz1` | closed |
 | T6: Security helpers (SSRF, shell_deny, scrub) | `openharness-vet` | closed |
-| T7: web_search built-in | `openharness-bgy` | open |
-| T8: web_fetch built-in | `openharness-66i` | open |
-| T9: filesystem built-in | `openharness-im2` | open |
+| T7: web_search built-in | `openharness-bgy` | closed |
+| T8: web_fetch built-in | `openharness-66i` | closed |
+| T9: filesystem built-in | `openharness-im2` | closed |
 | T10: exec built-in | `openharness-lc7` | open |
 | T11: ask_user built-in | `openharness-kb7` | open |
 | T12: tasks built-in | `openharness-bf1` | open |
 | T13: memory built-in (interface reconciliation) | `openharness-t89` | open |
-| T14: knowledge_graph types | `openharness-8y8` | open |
+| T14: knowledge_graph types | `openharness-8y8` | closed |
 | T15: knowledge_graph built-in | `openharness-npc` | open |
 | T16: subagent built-in | `openharness-h53` | open |
 | T17: core.Register + Config | `openharness-3an` | open |
