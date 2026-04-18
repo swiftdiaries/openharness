@@ -26,8 +26,8 @@ var shellDenyPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)\bgit\b.*\b(push\s+--force|reset\s+--hard|clean\s+-[a-zA-Z]*f)`),
 }
 
-// matchesDenyPattern returns true if the command matches any shell deny pattern.
-func matchesDenyPattern(command string) bool {
+// MatchesDenyPattern returns true if the command matches any shell deny pattern.
+func MatchesDenyPattern(command string) bool {
 	for _, pat := range shellDenyPatterns {
 		if pat.MatchString(command) {
 			return true

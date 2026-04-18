@@ -24,9 +24,9 @@ func TestShellDenyPatterns(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			denied := matchesDenyPattern(tt.command)
+			denied := MatchesDenyPattern(tt.command)
 			if denied != tt.denied {
-				t.Errorf("matchesDenyPattern(%q) = %v, want %v", tt.command, denied, tt.denied)
+				t.Errorf("MatchesDenyPattern(%q) = %v, want %v", tt.command, denied, tt.denied)
 			}
 		})
 	}
