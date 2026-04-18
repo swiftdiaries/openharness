@@ -24,10 +24,10 @@
 | T10: exec built-in | `openharness-lc7` | closed |
 | T11: ask_user built-in | `openharness-kb7` | closed |
 | T12: tasks built-in | `openharness-bf1` | closed |
-| T13: memory built-in (interface reconciliation) | `openharness-t89` | open |
+| T13: memory built-in (interface reconciliation) | `openharness-t89` | closed |
 | T14: knowledge_graph types | `openharness-8y8` | closed |
-| T15: knowledge_graph built-in | `openharness-npc` | open |
-| T16: subagent built-in | `openharness-h53` | open |
+| T15: knowledge_graph built-in | `openharness-npc` | closed |
+| T16: subagent built-in | `openharness-h53` | closed |
 | T17: core.Register + Config | `openharness-3an` | open |
 | T18: Integration test — D4 matrix + contract assertions | `openharness-8tv` | open |
 | T19 (V1): Dependency-direction verification | `openharness-fun` | open |
