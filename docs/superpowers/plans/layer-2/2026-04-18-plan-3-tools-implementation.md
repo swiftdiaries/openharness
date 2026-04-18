@@ -8,7 +8,7 @@
 |-------|-------|
 | Epic | `openharness-pol.2.3` |
 | Status | in_progress |
-| Worktree | (pending) |
+| Worktree | `.worktrees/layer-2-plan-3-tools` (branch: `feat/layer-2-plan-3-tools`) |
 
 | Task | Beads ID | Status |
 |------|----------|--------|
