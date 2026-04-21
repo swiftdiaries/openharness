@@ -30,3 +30,30 @@ func TestCheckSSRF(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveAndCheck_ReturnsPublicAddrs(t *testing.T) {
+	addrs, err := ResolveAndCheck("example.com")
+	if err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+	if len(addrs) == 0 {
+		t.Fatal("expected at least one public addr")
+	}
+}
+
+func TestResolveAndCheck_RejectsPrivateResolve(t *testing.T) {
+	_, err := ResolveAndCheck("localhost")
+	if err == nil {
+		t.Fatal("expected rejection for localhost")
+	}
+}
+
+func TestResolveAndCheck_IPLiteralPublic(t *testing.T) {
+	addrs, err := ResolveAndCheck("8.8.8.8")
+	if err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+	if len(addrs) != 1 || addrs[0] != "8.8.8.8" {
+		t.Fatalf("expected [8.8.8.8], got %v", addrs)
+	}
+}

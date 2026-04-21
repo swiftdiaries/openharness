@@ -40,3 +40,14 @@ func TestWebFetch_RedirectToPrivateIPBlocked(t *testing.T) {
 		t.Fatalf("expected SSRF-related error, got %v", err)
 	}
 }
+
+func TestWebFetch_UsesPinnedIP(t *testing.T) {
+	wf := NewWebFetch()
+	tr, ok := wf.client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("expected *http.Transport, got %T", wf.client.Transport)
+	}
+	if tr.DialContext == nil {
+		t.Fatal("expected custom DialContext for SSRF IP pinning")
+	}
+}

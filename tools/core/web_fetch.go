@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -20,10 +21,35 @@ type WebFetch struct {
 }
 
 // NewWebFetch creates a new WebFetch tool. The HTTP client re-runs CheckSSRF
-// on every redirect hop to prevent SSRF bypass via attacker-controlled 3xx.
+// on every redirect hop to prevent SSRF bypass via attacker-controlled 3xx,
+// and pins dials to IPs resolved at validate-time via ResolveAndCheck to
+// prevent DNS TOCTOU (LookupHost→Dial) rebinding attacks.
 func NewWebFetch() *WebFetch {
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+			ips, err := tools.ResolveAndCheck(host)
+			if err != nil {
+				return nil, fmt.Errorf("SSRF blocked at dial: %w", err)
+			}
+			var lastErr error
+			for _, ip := range ips {
+				conn, derr := dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
+				if derr == nil {
+					return conn, nil
+				}
+				lastErr = derr
+			}
+			return nil, lastErr
+		},
+	}
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout:   30 * time.Second,
+		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
 				return http.ErrUseLastResponse

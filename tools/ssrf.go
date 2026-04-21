@@ -85,3 +85,31 @@ func CheckSSRF(rawURL string) error {
 
 	return nil
 }
+
+// ResolveAndCheck validates a hostname-or-IP and returns the resolved public
+// IPs. Callers should pin HTTP dials to these addresses to prevent DNS TOCTOU
+// (LookupHost→Dial) rebinding attacks.
+func ResolveAndCheck(hostname string) ([]string, error) {
+	if hostname == "" {
+		return nil, fmt.Errorf("missing hostname")
+	}
+	if isBlockedHostname(hostname) {
+		return nil, fmt.Errorf("blocked hostname: %s", hostname)
+	}
+	if ip := net.ParseIP(hostname); ip != nil {
+		if isPrivateIP(hostname) {
+			return nil, fmt.Errorf("private IP address not allowed: %s", hostname)
+		}
+		return []string{hostname}, nil
+	}
+	addrs, err := net.LookupHost(hostname)
+	if err != nil {
+		return nil, fmt.Errorf("DNS resolution failed for %s: %w", hostname, err)
+	}
+	for _, addr := range addrs {
+		if isPrivateIP(addr) {
+			return nil, fmt.Errorf("hostname %s resolves to private IP %s", hostname, addr)
+		}
+	}
+	return addrs, nil
+}
