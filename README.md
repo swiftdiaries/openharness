@@ -1,5 +1,7 @@
 # openharness
 
+[![CI](https://github.com/swiftdiaries/openharness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/swiftdiaries/openharness/actions/workflows/ci.yml)
+
 **A Go framework for building agentic AI platforms.**
 
 > **Status: alpha.**
