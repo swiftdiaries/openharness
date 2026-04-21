@@ -14,6 +14,11 @@ import (
 	"github.com/swiftdiaries/openharness/tools"
 )
 
+// searchBaseURL is the DuckDuckGo HTML search endpoint. Exposed as a
+// package-private var so tests can redirect search requests at an
+// httptest server.
+var searchBaseURL = "https://html.duckduckgo.com/html/?q="
+
 // WebSearch searches the web via DuckDuckGo HTML.
 type WebSearch struct {
 	client *http.Client
@@ -58,12 +63,12 @@ func (w *WebSearch) Execute(ctx context.Context, name string, args json.RawMessa
 		params.Limit = 5
 	}
 
-	u := "https://html.duckduckgo.com/html/?q=" + url.QueryEscape(params.Query)
+	u := searchBaseURL + url.QueryEscape(params.Query)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; GhostFin/1.0)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; openharness/0.1)")
 
 	resp, err := w.client.Do(req)
 	if err != nil {
@@ -105,7 +110,11 @@ func (w *WebSearch) Execute(ctx context.Context, name string, args json.RawMessa
 						snippet = findSnippet(n.Parent.Parent)
 					}
 					if title != "" && href != "" {
-						results = append(results, Result{Title: title, URL: href, Snippet: snippet})
+						results = append(results, Result{
+							Title:   SanitizeRead(title),
+							URL:     href,
+							Snippet: SanitizeExternal(snippet),
+						})
 					}
 					return
 				}

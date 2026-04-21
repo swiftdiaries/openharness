@@ -6,6 +6,8 @@
 package core
 
 import (
+	"fmt"
+
 	"github.com/swiftdiaries/openharness/tools"
 )
 
@@ -13,9 +15,9 @@ import (
 // optional where noted; omitted optional fields cause the corresponding
 // tool to be skipped rather than erroring.
 type Config struct {
-	// WorkspacePath is the root for filesystem + exec + tasks (required
-	// for those three tools to function; an empty string still succeeds
-	// but scopes tools to the empty workspace).
+	// WorkspacePath is the root for filesystem + exec + tasks. Required:
+	// Register returns an error if this is empty, to avoid silently
+	// scoping those tools to the process's current working directory.
 	WorkspacePath string
 	// MemoryPath is the JSON file backing the memory tool. An empty
 	// string skips registration of memory_*.
@@ -26,6 +28,9 @@ type Config struct {
 	// Subagent enumerates the subagent types advertised to the LLM. An
 	// empty map (or zero value) skips registration of the agent tool.
 	Subagent SubagentConfig
+	// WriteGuard, if non-nil, is attached to the filesystem tool to block
+	// writes to specific paths (e.g. vertical-owned context files). nil is fine.
+	WriteGuard WriteGuardFunc
 }
 
 // Register populates r with built-in tools according to cfg. Every
@@ -39,13 +44,20 @@ type Config struct {
 //   - knowledge_graph_search if cfg.KnowledgeStore == nil
 //   - agent if cfg.Subagent.Subagents is empty
 func Register(r *tools.Registry, cfg Config) error {
+	if cfg.WorkspacePath == "" {
+		return fmt.Errorf("core: WorkspacePath must not be empty; pass an explicit path")
+	}
 	if err := r.Register("web", NewWebSearch()); err != nil {
 		return err
 	}
 	if err := r.Register("web", NewWebFetch()); err != nil {
 		return err
 	}
-	if err := r.Register("filesystem", NewFilesystem(cfg.WorkspacePath)); err != nil {
+	fs := NewFilesystem(cfg.WorkspacePath)
+	if cfg.WriteGuard != nil {
+		fs.SetWriteGuard(cfg.WriteGuard)
+	}
+	if err := r.Register("filesystem", fs); err != nil {
 		return err
 	}
 	if err := r.Register("exec", NewExec(cfg.WorkspacePath)); err != nil {

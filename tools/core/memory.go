@@ -45,14 +45,14 @@ func (m *Memory) load() {
 }
 
 func (m *Memory) save() error {
-	if err := os.MkdirAll(filepath.Dir(m.path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(m.path), 0o700); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(m.entries, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(m.path, data, 0o644)
+	return os.WriteFile(m.path, data, 0o600)
 }
 
 func (m *Memory) Definitions() []tools.ToolDefinition {
@@ -146,7 +146,12 @@ func (m *Memory) execSearch(ctx context.Context, args json.RawMessage) (json.Raw
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(results)
+	scrubbed := make([]agent.MemoryEntry, len(results))
+	for i, e := range results {
+		e.Value = SanitizeRead(e.Value)
+		scrubbed[i] = e
+	}
+	return json.Marshal(scrubbed)
 }
 
 // Search satisfies agent.MemoryStore. Semantics preserved verbatim from
@@ -189,5 +194,6 @@ func (m *Memory) execGet(args json.RawMessage) (json.RawMessage, error) {
 	if !ok {
 		return json.Marshal(map[string]string{"error": "not found"})
 	}
+	entry.Value = SanitizeRead(entry.Value)
 	return json.Marshal(entry)
 }

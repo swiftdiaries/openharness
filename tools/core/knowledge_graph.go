@@ -108,14 +108,11 @@ func (kg *KnowledgeGraph) Execute(ctx context.Context, name string, args json.Ra
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(result)
+	return json.Marshal(SanitizeExternal(result))
 }
 
 func (kg *KnowledgeGraph) execSearch(ctx context.Context, params kgArgs) (string, error) {
-	var (
-		blocks []KGBlock
-		err    error
-	)
+	var blocks []KGBlock
 	if params.Page != "" {
 		page, err := kg.store.GetPage(ctx, strings.ToLower(params.Page))
 		if err != nil {
@@ -124,15 +121,17 @@ func (kg *KnowledgeGraph) execSearch(ctx context.Context, params kgArgs) (string
 		if page == nil {
 			return fmt.Sprintf("Page %q not found.", params.Page), nil
 		}
-		blocks, err = kg.store.SearchInPage(ctx, page.ID, params.Query, params.MaxResults)
+		inPageBlocks, err := kg.store.SearchInPage(ctx, page.ID, params.Query, params.MaxResults)
 		if err != nil {
 			return "", fmt.Errorf("search in page: %w", err)
 		}
+		blocks = inPageBlocks
 	} else {
-		blocks, err = kg.store.Search(ctx, params.Query, params.MaxResults)
+		searched, err := kg.store.Search(ctx, params.Query, params.MaxResults)
 		if err != nil {
 			return "", fmt.Errorf("search: %w", err)
 		}
+		blocks = searched
 	}
 
 	if len(blocks) == 0 {

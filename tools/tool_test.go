@@ -12,28 +12,20 @@ func TestToolEffectZeroValueIsUnspecified(t *testing.T) {
 	}
 }
 
-func TestToolVisibilityZeroValueIsDefault(t *testing.T) {
-	var v ToolVisibility
-	if v != ToolVisibilityDefault {
-		t.Fatalf("zero value of ToolVisibility should be ToolVisibilityDefault, got %d", int(v))
-	}
-}
-
 func TestToolDefinitionEffectsNotSerialized(t *testing.T) {
 	def := ToolDefinition{
 		Name:        "example",
 		Description: "x",
 		Parameters:  json.RawMessage(`{}`),
 		Effects:     ToolEffectMutate,
-		Visibility:  ToolVisibilityModelOnly,
 	}
 	data, err := json.Marshal(def)
 	if err != nil {
 		t.Fatal(err)
 	}
 	s := string(data)
-	if containsAny(s, []string{"Effects", "Visibility", "effects", "visibility"}) {
-		t.Fatalf("Effects/Visibility must not appear in JSON output, got: %s", s)
+	if containsAny(s, []string{"Effects", "effects"}) {
+		t.Fatalf("Effects must not appear in JSON output, got: %s", s)
 	}
 }
 

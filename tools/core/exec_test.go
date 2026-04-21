@@ -19,7 +19,7 @@ func TestIsAllowed(t *testing.T) {
 		{"tail -f log.txt", true},
 		{"echo hello", true},
 		{"pwd", true},
-		{"find . -name '*.go'", true},
+		{"find . -name exec.go", true},
 		{"diff file1 file2", true},
 		{"mkdir -p foo/bar", true},
 		{"cp src dst", true},
@@ -68,10 +68,73 @@ func TestIsAllowed(t *testing.T) {
 func TestExecEffectsIsNeutral(t *testing.T) {
 	e := NewExec(t.TempDir())
 	defs := e.Definitions()
-	if len(defs) != 1 {
-		t.Fatalf("want 1 definition, got %d", len(defs))
+	var readDef *tools.ToolDefinition
+	for i, d := range defs {
+		if d.Name == "exec_read" {
+			readDef = &defs[i]
+			break
+		}
 	}
-	if defs[0].Effects != tools.ToolEffectNeutral {
-		t.Errorf("Effects = %v, want Neutral (preserves tool_loop.go:161 behavior)", defs[0].Effects)
+	if readDef == nil {
+		t.Fatalf("want exec_read definition, got %+v", defs)
+	}
+	if readDef.Effects != tools.ToolEffectNeutral {
+		t.Errorf("Effects = %v, want Neutral (preserves tool_loop.go:161 behavior)", readDef.Effects)
+	}
+}
+
+func TestIsAllowed_RejectsNewlineInjection(t *testing.T) {
+	if IsAllowed("cat foo\nrm -rf /tmp/x") {
+		t.Fatal("newline should block chained command")
+	}
+}
+
+func TestIsAllowed_RejectsCarriageReturn(t *testing.T) {
+	if IsAllowed("cat foo\rrm -rf /") {
+		t.Fatal("CR should block")
+	}
+}
+
+func TestIsAllowed_RejectsTildeExpansion(t *testing.T) {
+	if IsAllowed("ls ~/secrets") {
+		t.Fatal("tilde expansion should block")
+	}
+}
+
+func TestIsAllowed_RejectsBraceExpansion(t *testing.T) {
+	if IsAllowed("ls {a,b}") {
+		t.Fatal("brace expansion should block")
+	}
+}
+
+func TestIsAllowed_RejectsSingleAmpersand(t *testing.T) {
+	if IsAllowed("ls & rm foo") {
+		t.Fatal("single ampersand should block")
+	}
+}
+
+func TestIsAllowed_RejectsSinglePipe(t *testing.T) {
+	if IsAllowed("ls | rm foo") {
+		t.Fatal("single pipe should block")
+	}
+}
+
+func TestExec_DefinitionsSplitByEffect(t *testing.T) {
+	e := NewExec(t.TempDir())
+	defs := e.Definitions()
+	if len(defs) != 2 {
+		t.Fatalf("expected 2 definitions (read + mutate), got %d", len(defs))
+	}
+	var seenRead, seenMutate bool
+	for _, d := range defs {
+		switch d.Effects {
+		case tools.ToolEffectRead, tools.ToolEffectNeutral:
+			seenRead = true
+		case tools.ToolEffectMutate:
+			seenMutate = true
+		}
+	}
+	if !seenRead || !seenMutate {
+		t.Fatalf("expected both read and mutate, got read=%v mutate=%v", seenRead, seenMutate)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -14,14 +15,63 @@ import (
 	"github.com/swiftdiaries/openharness/tools"
 )
 
+// disableSSRFForTests opts out of SSRF checks. Set ONLY from *_test.go in
+// this package; not exported. Production code path is unaffected.
+var disableSSRFForTests bool
+
 // WebFetch fetches a URL and extracts text content.
 type WebFetch struct {
 	client *http.Client
 }
 
-// NewWebFetch creates a new WebFetch tool.
+// NewWebFetch creates a new WebFetch tool. The HTTP client re-runs CheckSSRF
+// on every redirect hop to prevent SSRF bypass via attacker-controlled 3xx,
+// and pins dials to IPs resolved at validate-time via ResolveAndCheck to
+// prevent DNS TOCTOU (LookupHost→Dial) rebinding attacks.
 func NewWebFetch() *WebFetch {
-	return &WebFetch{client: &http.Client{Timeout: 30 * time.Second}}
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+			var ips []string
+			if disableSSRFForTests {
+				ips = []string{host}
+			} else {
+				ips, err = tools.ResolveAndCheck(host)
+				if err != nil {
+					return nil, fmt.Errorf("SSRF blocked at dial: %w", err)
+				}
+			}
+			var lastErr error
+			for _, ip := range ips {
+				conn, derr := dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
+				if derr == nil {
+					return conn, nil
+				}
+				lastErr = derr
+			}
+			return nil, lastErr
+		},
+	}
+	client := &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: transport,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return http.ErrUseLastResponse
+			}
+			if !disableSSRFForTests {
+				if err := tools.CheckSSRF(req.URL.String()); err != nil {
+					return fmt.Errorf("SSRF blocked on redirect: %w", err)
+				}
+			}
+			return nil
+		},
+	}
+	return &WebFetch{client: client}
 }
 
 func (w *WebFetch) Definitions() []tools.ToolDefinition {
@@ -53,16 +103,18 @@ func (w *WebFetch) Execute(ctx context.Context, name string, args json.RawMessag
 		return nil, fmt.Errorf("parse args: %w", err)
 	}
 
-	if err := tools.CheckSSRF(params.URL); err != nil {
-		slog.Warn("security.ssrf_blocked", "url", params.URL, "reason", err.Error())
-		return nil, fmt.Errorf("SSRF blocked: %w", err)
+	if !disableSSRFForTests {
+		if err := tools.CheckSSRF(params.URL); err != nil {
+			slog.Warn("security.ssrf_blocked", "url", params.URL, "reason", err.Error())
+			return nil, fmt.Errorf("SSRF blocked: %w", err)
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, params.URL, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; GhostFin/1.0)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; openharness/0.1)")
 
 	resp, err := w.client.Do(req)
 	if err != nil {
@@ -108,8 +160,8 @@ func (w *WebFetch) Execute(ctx context.Context, name string, args json.RawMessag
 
 	result := map[string]string{
 		"url":     params.URL,
-		"title":   title,
-		"content": tools.WrapExternalContent(text),
+		"title":   SanitizeRead(title),
+		"content": SanitizeExternal(text),
 	}
 	return json.Marshal(result)
 }

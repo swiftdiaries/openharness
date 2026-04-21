@@ -35,7 +35,7 @@ func TestRegister_WiresAllTools(t *testing.T) {
 		"web_search",
 		"web_fetch",
 		"read_file", "write_file", "list_files", "edit_file",
-		"exec",
+		"exec_read", "exec_mutate",
 		"ask_user_question",
 		"task_create", "task_update", "task_get", "task_list",
 		"memory_store", "memory_search", "memory_get",
@@ -64,7 +64,8 @@ func TestRegister_D4EffectsMatrix(t *testing.T) {
 		{"list_files", tools.ToolEffectRead},
 		{"write_file", tools.ToolEffectMutate},
 		{"edit_file", tools.ToolEffectMutate},
-		{"exec", tools.ToolEffectNeutral},
+		{"exec_read", tools.ToolEffectNeutral},
+		{"exec_mutate", tools.ToolEffectMutate},
 		{"memory_search", tools.ToolEffectRead},
 		{"memory_get", tools.ToolEffectRead},
 		{"memory_store", tools.ToolEffectMutate},
@@ -159,5 +160,16 @@ func TestRegister_EmptyMemoryPathOmitsMemory(t *testing.T) {
 		if r.Get(name) != nil {
 			t.Errorf("empty MemoryPath must omit %s", name)
 		}
+	}
+}
+
+func TestRegister_RejectsEmptyWorkspacePath(t *testing.T) {
+	r := tools.NewRegistry()
+	err := Register(r, Config{WorkspacePath: ""})
+	if err == nil {
+		t.Fatal("expected error on empty WorkspacePath")
+	}
+	if !strings.Contains(err.Error(), "WorkspacePath") {
+		t.Fatalf("expected WorkspacePath in error, got %v", err)
 	}
 }

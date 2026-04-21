@@ -43,30 +43,17 @@ const (
 	ToolEffectInteractive
 )
 
-// ToolVisibility reserves space for UIBridge-facing semantics wired in Plan 4.
-// Plan 3 declares the enum but does not act on it; Plan 4 decides which
-// definitions render in the app UI vs. stay hidden from the LLM.
-type ToolVisibility int
-
-const (
-	ToolVisibilityDefault   ToolVisibility = iota // visible to both LLM and app UI
-	ToolVisibilityModelOnly                       // LLM sees it; app UI does not
-	ToolVisibilityAppOnly                         // app UI surfaces it; LLM does not
-)
-
 // ToolDefinition is a single callable surface a Tool exposes to the LLM. A
 // Tool may publish several definitions (e.g. the filesystem tool publishes
-// read_file, write_file, list_files, edit_file). Effects and Visibility are
-// per-definition, never per-Tool, because tools commonly mix read and
-// mutate surfaces.
+// read_file, write_file, list_files, edit_file). Effects are per-definition,
+// never per-Tool, because tools commonly mix read and mutate surfaces.
 type ToolDefinition struct {
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
 	Parameters  json.RawMessage `json:"parameters"`
-	// Effects and Visibility are framework-internal metadata and MUST NOT
-	// be serialized to the LLM — the `json:"-"` tag is load-bearing.
-	Effects    ToolEffect     `json:"-"`
-	Visibility ToolVisibility `json:"-"`
+	// Effects is framework-internal metadata and MUST NOT be serialized to
+	// the LLM — the `json:"-"` tag is load-bearing.
+	Effects ToolEffect `json:"-"`
 }
 
 // Tool is the handler for one or more ToolDefinitions. Execute is dispatched
