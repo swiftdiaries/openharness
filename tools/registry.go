@@ -19,10 +19,9 @@ type ToolCategory struct {
 // precomputed into an O(1) map because Plan 5's loop-detection path
 // calls EffectsFor on every tool invocation.
 type Registry struct {
-	tools             map[string]Tool
-	categories        map[string]string     // def name -> category
-	effects           map[string]ToolEffect // def name -> effects
-	deferredActivator func(name string) bool
+	tools      map[string]Tool
+	categories map[string]string     // def name -> category
+	effects    map[string]ToolEffect // def name -> effects
 }
 
 // NewRegistry creates an empty Registry.
@@ -47,6 +46,9 @@ func (r *Registry) Register(category string, t Tool) error {
 		}
 	}
 	for _, def := range defs {
+		if _, dup := r.tools[def.Name]; dup {
+			return fmt.Errorf("tool name collision: %q already registered", def.Name)
+		}
 		r.tools[def.Name] = t
 		r.categories[def.Name] = category
 		r.effects[def.Name] = def.Effects
@@ -107,20 +109,6 @@ func (r *Registry) ToolsByCategory(cat string) []Tool {
 		}
 	}
 	return result
-}
-
-// SetDeferredActivator sets a callback that can lazily activate deferred tools by name.
-func (r *Registry) SetDeferredActivator(fn func(name string) bool) {
-	r.deferredActivator = fn
-}
-
-// TryActivateDeferred attempts to activate a deferred tool by name.
-// Returns the tool if activation succeeded, nil otherwise.
-func (r *Registry) TryActivateDeferred(name string) Tool {
-	if r.deferredActivator != nil && r.deferredActivator(name) {
-		return r.tools[name]
-	}
-	return nil
 }
 
 // ToolsByNames returns the Tools wrapping the named definitions, deduplicated.
