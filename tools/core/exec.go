@@ -140,8 +140,8 @@ func (e *Exec) Execute(ctx context.Context, name string, args json.RawMessage) (
 	}
 
 	result := map[string]interface{}{
-		"stdout":    stdout.String(),
-		"stderr":    stderr.String(),
+		"stdout":    SanitizeRead(stdout.String()),
+		"stderr":    SanitizeRead(stderr.String()),
 		"exit_code": exitCode,
 	}
 	return json.Marshal(result)

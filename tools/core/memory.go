@@ -146,7 +146,12 @@ func (m *Memory) execSearch(ctx context.Context, args json.RawMessage) (json.Raw
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(results)
+	scrubbed := make([]agent.MemoryEntry, len(results))
+	for i, e := range results {
+		e.Value = SanitizeRead(e.Value)
+		scrubbed[i] = e
+	}
+	return json.Marshal(scrubbed)
 }
 
 // Search satisfies agent.MemoryStore. Semantics preserved verbatim from
@@ -189,5 +194,6 @@ func (m *Memory) execGet(args json.RawMessage) (json.RawMessage, error) {
 	if !ok {
 		return json.Marshal(map[string]string{"error": "not found"})
 	}
+	entry.Value = SanitizeRead(entry.Value)
 	return json.Marshal(entry)
 }

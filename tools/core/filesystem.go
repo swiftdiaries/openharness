@@ -156,7 +156,7 @@ func (f *Filesystem) readFile(args json.RawMessage) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(map[string]string{"content": string(data)})
+	return json.Marshal(map[string]string{"content": SanitizeRead(string(data))})
 }
 
 func (f *Filesystem) writeFile(args json.RawMessage) (json.RawMessage, error) {

@@ -147,8 +147,8 @@ func (w *WebFetch) Execute(ctx context.Context, name string, args json.RawMessag
 
 	result := map[string]string{
 		"url":     params.URL,
-		"title":   title,
-		"content": tools.WrapExternalContent(text),
+		"title":   SanitizeRead(title),
+		"content": SanitizeExternal(text),
 	}
 	return json.Marshal(result)
 }
