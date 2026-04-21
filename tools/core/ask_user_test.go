@@ -41,6 +41,10 @@ func TestAskUserSchemaHasSuggestions(t *testing.T) {
 	}
 }
 
+// TODO(plan-4): this test asserts the stubbed "waiting_for_user" response.
+// When Plan 4 wires the UIBridge channel, rewrite this test to exercise the
+// real interactive flow. See docs/superpowers/plans/layer-2/*-plan-4-*.md
+// (or the beads issue once filed).
 func TestAskUserExecuteReturnsPlaceholder(t *testing.T) {
 	a := NewAskUser()
 	result, err := a.Execute(nil, "ask_user_question", json.RawMessage(`{"question":"test?"}`))
