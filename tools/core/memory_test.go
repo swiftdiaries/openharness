@@ -174,3 +174,20 @@ func TestMemoryDefinitionsEffects(t *testing.T) {
 		}
 	}
 }
+
+func TestMemory_FileMode0600(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "memory.json")
+	m := NewMemory(path)
+	args, _ := json.Marshal(map[string]string{"key": "k", "value": "v"})
+	if _, err := m.Execute(context.Background(), "memory_store", args); err != nil {
+		t.Fatalf("store: %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat: %v", err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("expected 0600, got %o", info.Mode().Perm())
+	}
+}

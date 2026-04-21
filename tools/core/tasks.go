@@ -201,12 +201,12 @@ func (t *TaskCRUD) load() []TaskItem {
 }
 
 func (t *TaskCRUD) save(tasks []TaskItem) error {
-	os.MkdirAll(filepath.Dir(t.storePath), 0755)
+	os.MkdirAll(filepath.Dir(t.storePath), 0700)
 	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(t.storePath, data, 0644)
+	return os.WriteFile(t.storePath, data, 0600)
 }
 
 func (t *TaskCRUD) Tasks() []TaskItem {

@@ -170,3 +170,20 @@ func TestTaskCRUDEffects(t *testing.T) {
 		}
 	}
 }
+
+func TestTasks_FileMode0600(t *testing.T) {
+	dir := t.TempDir()
+	tc := NewTaskCRUD(dir)
+	args := json.RawMessage(`{"subject":"perm test"}`)
+	if _, err := tc.Execute(context.Background(), "task_create", args); err != nil {
+		t.Fatalf("task_create: %v", err)
+	}
+	path := filepath.Join(dir, "tasks.json")
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat: %v", err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("expected 0600, got %o", info.Mode().Perm())
+	}
+}

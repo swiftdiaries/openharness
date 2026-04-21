@@ -45,14 +45,14 @@ func (m *Memory) load() {
 }
 
 func (m *Memory) save() error {
-	if err := os.MkdirAll(filepath.Dir(m.path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(m.path), 0o700); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(m.entries, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(m.path, data, 0o644)
+	return os.WriteFile(m.path, data, 0o600)
 }
 
 func (m *Memory) Definitions() []tools.ToolDefinition {
