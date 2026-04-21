@@ -15,6 +15,10 @@ import (
 	"github.com/swiftdiaries/openharness/tools"
 )
 
+// disableSSRFForTests opts out of SSRF checks. Set ONLY from *_test.go in
+// this package; not exported. Production code path is unaffected.
+var disableSSRFForTests bool
+
 // WebFetch fetches a URL and extracts text content.
 type WebFetch struct {
 	client *http.Client
@@ -32,9 +36,14 @@ func NewWebFetch() *WebFetch {
 			if err != nil {
 				return nil, err
 			}
-			ips, err := tools.ResolveAndCheck(host)
-			if err != nil {
-				return nil, fmt.Errorf("SSRF blocked at dial: %w", err)
+			var ips []string
+			if disableSSRFForTests {
+				ips = []string{host}
+			} else {
+				ips, err = tools.ResolveAndCheck(host)
+				if err != nil {
+					return nil, fmt.Errorf("SSRF blocked at dial: %w", err)
+				}
 			}
 			var lastErr error
 			for _, ip := range ips {
@@ -54,8 +63,10 @@ func NewWebFetch() *WebFetch {
 			if len(via) >= 10 {
 				return http.ErrUseLastResponse
 			}
-			if err := tools.CheckSSRF(req.URL.String()); err != nil {
-				return fmt.Errorf("SSRF blocked on redirect: %w", err)
+			if !disableSSRFForTests {
+				if err := tools.CheckSSRF(req.URL.String()); err != nil {
+					return fmt.Errorf("SSRF blocked on redirect: %w", err)
+				}
 			}
 			return nil
 		},
@@ -92,9 +103,11 @@ func (w *WebFetch) Execute(ctx context.Context, name string, args json.RawMessag
 		return nil, fmt.Errorf("parse args: %w", err)
 	}
 
-	if err := tools.CheckSSRF(params.URL); err != nil {
-		slog.Warn("security.ssrf_blocked", "url", params.URL, "reason", err.Error())
-		return nil, fmt.Errorf("SSRF blocked: %w", err)
+	if !disableSSRFForTests {
+		if err := tools.CheckSSRF(params.URL); err != nil {
+			slog.Warn("security.ssrf_blocked", "url", params.URL, "reason", err.Error())
+			return nil, fmt.Errorf("SSRF blocked: %w", err)
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, params.URL, nil)

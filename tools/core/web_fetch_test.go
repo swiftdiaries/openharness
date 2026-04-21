@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -49,5 +50,39 @@ func TestWebFetch_UsesPinnedIP(t *testing.T) {
 	}
 	if tr.DialContext == nil {
 		t.Fatal("expected custom DialContext for SSRF IP pinning")
+	}
+}
+
+func TestWebFetch_ExecuteRoundTrip(t *testing.T) {
+	disableSSRFForTests = true
+	t.Cleanup(func() { disableSSRFForTests = false })
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<html><head><title>Hello</title></head><body><p>World</p><script>alert(1)</script></body></html>`)
+	}))
+	defer srv.Close()
+
+	wf := NewWebFetch()
+	args, _ := json.Marshal(map[string]string{"url": srv.URL})
+	raw, err := wf.Execute(context.Background(), "web_fetch", args)
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	var out map[string]string
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if !strings.Contains(out["title"], "Hello") {
+		t.Fatalf("title: %q", out["title"])
+	}
+	if !strings.Contains(out["content"], "World") {
+		t.Fatalf("content missing body: %q", out["content"])
+	}
+	if strings.Contains(out["content"], "alert(1)") {
+		t.Fatalf("script content should be stripped")
+	}
+	if !strings.Contains(out["content"], "EXTERNAL_UNTRUSTED_CONTENT") {
+		t.Fatalf("expected external-content wrapper")
 	}
 }
