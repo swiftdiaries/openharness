@@ -105,7 +105,11 @@ func (w *WebSearch) Execute(ctx context.Context, name string, args json.RawMessa
 						snippet = findSnippet(n.Parent.Parent)
 					}
 					if title != "" && href != "" {
-						results = append(results, Result{Title: title, URL: href, Snippet: snippet})
+						results = append(results, Result{
+							Title:   SanitizeRead(title),
+							URL:     href,
+							Snippet: SanitizeExternal(snippet),
+						})
 					}
 					return
 				}

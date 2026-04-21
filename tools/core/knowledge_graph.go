@@ -108,7 +108,7 @@ func (kg *KnowledgeGraph) Execute(ctx context.Context, name string, args json.Ra
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(result)
+	return json.Marshal(SanitizeExternal(result))
 }
 
 func (kg *KnowledgeGraph) execSearch(ctx context.Context, params kgArgs) (string, error) {
