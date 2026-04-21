@@ -161,3 +161,14 @@ func TestRegister_EmptyMemoryPathOmitsMemory(t *testing.T) {
 		}
 	}
 }
+
+func TestRegister_RejectsEmptyWorkspacePath(t *testing.T) {
+	r := tools.NewRegistry()
+	err := Register(r, Config{WorkspacePath: ""})
+	if err == nil {
+		t.Fatal("expected error on empty WorkspacePath")
+	}
+	if !strings.Contains(err.Error(), "WorkspacePath") {
+		t.Fatalf("expected WorkspacePath in error, got %v", err)
+	}
+}
