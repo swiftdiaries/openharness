@@ -63,7 +63,7 @@ func (w *WebSearch) Execute(ctx context.Context, name string, args json.RawMessa
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; GhostFin/1.0)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; openharness/0.1)")
 
 	resp, err := w.client.Do(req)
 	if err != nil {
