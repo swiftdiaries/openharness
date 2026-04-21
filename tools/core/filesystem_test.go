@@ -3,8 +3,10 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/swiftdiaries/openharness/tools"
@@ -64,82 +66,6 @@ func TestValidatePath_AllowsMissingFiles(t *testing.T) {
 	}
 }
 
-func TestWriteGuard_PredefinedBlocksIdentity(t *testing.T) {
-	dir := t.TempDir()
-	fs := NewFilesystem(dir)
-	fs.SetWriteGuard("predefined", false)
-
-	args, _ := json.Marshal(map[string]string{"path": "IDENTITY.md", "content": "hacked"})
-	_, err := fs.Execute(context.Background(), "write_file", args)
-	if err == nil {
-		t.Error("expected write to IDENTITY.md to be blocked for predefined agent")
-	}
-}
-
-func TestWriteGuard_PredefinedBlocksAgents(t *testing.T) {
-	dir := t.TempDir()
-	fs := NewFilesystem(dir)
-	fs.SetWriteGuard("predefined", false)
-
-	args, _ := json.Marshal(map[string]string{"path": "AGENTS.md", "content": "hacked"})
-	_, err := fs.Execute(context.Background(), "write_file", args)
-	if err == nil {
-		t.Error("expected write to AGENTS.md to be blocked for predefined agent")
-	}
-}
-
-func TestWriteGuard_PredefinedAllowsSoulWhenEvolve(t *testing.T) {
-	dir := t.TempDir()
-	fs := NewFilesystem(dir)
-	fs.SetWriteGuard("predefined", true)
-
-	args, _ := json.Marshal(map[string]string{"path": "SOUL.md", "content": "evolved"})
-	_, err := fs.Execute(context.Background(), "write_file", args)
-	if err != nil {
-		t.Errorf("expected SOUL.md write to succeed with self_evolve=true, got %v", err)
-	}
-}
-
-func TestWriteGuard_PredefinedBlocksSoulWhenNoEvolve(t *testing.T) {
-	dir := t.TempDir()
-	fs := NewFilesystem(dir)
-	fs.SetWriteGuard("predefined", false)
-
-	args, _ := json.Marshal(map[string]string{"path": "SOUL.md", "content": "hacked"})
-	_, err := fs.Execute(context.Background(), "write_file", args)
-	if err == nil {
-		t.Error("expected SOUL.md write to be blocked without self_evolve")
-	}
-}
-
-func TestWriteGuard_OpenAllowsAll(t *testing.T) {
-	dir := t.TempDir()
-	fs := NewFilesystem(dir)
-	fs.SetWriteGuard("open", false)
-
-	for _, name := range []string{"SOUL.md", "IDENTITY.md", "AGENTS.md"} {
-		args, _ := json.Marshal(map[string]string{"path": name, "content": "content"})
-		_, err := fs.Execute(context.Background(), "write_file", args)
-		if err != nil {
-			t.Errorf("open agent should be able to write %s, got %v", name, err)
-		}
-	}
-}
-
-func TestWriteGuard_NoGuardAllowsAll(t *testing.T) {
-	dir := t.TempDir()
-	fs := NewFilesystem(dir)
-	// No SetWriteGuard call — agentType is ""
-
-	for _, name := range []string{"SOUL.md", "IDENTITY.md", "AGENTS.md"} {
-		args, _ := json.Marshal(map[string]string{"path": name, "content": "content"})
-		_, err := fs.Execute(context.Background(), "write_file", args)
-		if err != nil {
-			t.Errorf("no guard should allow write to %s, got %v", name, err)
-		}
-	}
-}
-
 func TestFilesystemEffects(t *testing.T) {
 	f := NewFilesystem(t.TempDir())
 	want := map[string]tools.ToolEffect{
@@ -152,5 +78,36 @@ func TestFilesystemEffects(t *testing.T) {
 		if got := d.Effects; got != want[d.Name] {
 			t.Errorf("%s: Effects = %v, want %v", d.Name, got, want[d.Name])
 		}
+	}
+}
+
+func TestFilesystem_WriteGuardBlocks(t *testing.T) {
+	ws := t.TempDir()
+	fs := NewFilesystem(ws)
+	fs.SetWriteGuard(func(absPath string) error {
+		if filepath.Base(absPath) == "BLOCKED.md" {
+			return fmt.Errorf("BLOCKED.md is immutable")
+		}
+		return nil
+	})
+
+	args, _ := json.Marshal(map[string]string{"path": "BLOCKED.md", "content": "x"})
+	_, err := fs.Execute(context.Background(), "write_file", args)
+	if err == nil || !strings.Contains(err.Error(), "BLOCKED.md") {
+		t.Fatalf("expected BLOCKED.md error, got %v", err)
+	}
+
+	args2, _ := json.Marshal(map[string]string{"path": "ok.md", "content": "x"})
+	if _, err := fs.Execute(context.Background(), "write_file", args2); err != nil {
+		t.Fatalf("unblocked write failed: %v", err)
+	}
+}
+
+func TestFilesystem_NoGuardAllowsAll(t *testing.T) {
+	ws := t.TempDir()
+	fs := NewFilesystem(ws)
+	args, _ := json.Marshal(map[string]string{"path": "anything.md", "content": "x"})
+	if _, err := fs.Execute(context.Background(), "write_file", args); err != nil {
+		t.Fatalf("no guard should allow write: %v", err)
 	}
 }

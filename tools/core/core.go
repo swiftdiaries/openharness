@@ -28,6 +28,9 @@ type Config struct {
 	// Subagent enumerates the subagent types advertised to the LLM. An
 	// empty map (or zero value) skips registration of the agent tool.
 	Subagent SubagentConfig
+	// WriteGuard, if non-nil, is attached to the filesystem tool to block
+	// writes to specific paths (e.g. vertical-owned context files). nil is fine.
+	WriteGuard WriteGuardFunc
 }
 
 // Register populates r with built-in tools according to cfg. Every
@@ -50,7 +53,11 @@ func Register(r *tools.Registry, cfg Config) error {
 	if err := r.Register("web", NewWebFetch()); err != nil {
 		return err
 	}
-	if err := r.Register("filesystem", NewFilesystem(cfg.WorkspacePath)); err != nil {
+	fs := NewFilesystem(cfg.WorkspacePath)
+	if cfg.WriteGuard != nil {
+		fs.SetWriteGuard(cfg.WriteGuard)
+	}
+	if err := r.Register("filesystem", fs); err != nil {
 		return err
 	}
 	if err := r.Register("exec", NewExec(cfg.WorkspacePath)); err != nil {

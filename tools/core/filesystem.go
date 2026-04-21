@@ -11,23 +11,20 @@ import (
 	"github.com/swiftdiaries/openharness/tools"
 )
 
+// WriteGuardFunc returns an error to block a write operation. Verticals
+// supply this to protect context files; openharness ships no default.
+type WriteGuardFunc func(absPath string) error
+
 // Filesystem provides file operations scoped to a workspace directory.
 type Filesystem struct {
-	workspace  string
-	agentType  string // "open" | "predefined" | "" (no guard)
-	selfEvolve bool
+	workspace string
+	guard     WriteGuardFunc
 }
 
-// predefinedImmutableFiles are context files that predefined agents may never modify.
-var predefinedImmutableFiles = map[string]bool{
-	"IDENTITY.md": true,
-	"AGENTS.md":   true,
-}
-
-// SetWriteGuard configures context file write protection.
-func (f *Filesystem) SetWriteGuard(agentType string, selfEvolve bool) {
-	f.agentType = agentType
-	f.selfEvolve = selfEvolve
+// SetWriteGuard installs a WriteGuardFunc. Callers typically set this in
+// openharness verticals right after NewFilesystem.
+func (f *Filesystem) SetWriteGuard(fn WriteGuardFunc) {
+	f.guard = fn
 }
 
 // NewFilesystem creates a Filesystem tool scoped to the given workspace directory.
@@ -38,12 +35,6 @@ func NewFilesystem(workspace string) *Filesystem {
 		resolved = filepath.Clean(workspace)
 	}
 	return &Filesystem{workspace: resolved}
-}
-
-// DefaultWorkspace returns ~/.ghostfin/workspace/.
-func DefaultWorkspace() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".ghostfin", "workspace")
 }
 
 // ValidatePath checks that the resolved path is within the workspace. Exported for testing.
@@ -171,14 +162,9 @@ func (f *Filesystem) writeFile(args json.RawMessage) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Context file write guard
-	if f.agentType == "predefined" {
-		base := filepath.Base(resolved)
-		if predefinedImmutableFiles[base] {
-			return nil, fmt.Errorf("cannot modify %s: immutable for predefined agents", base)
-		}
-		if base == "SOUL.md" && !f.selfEvolve {
-			return nil, fmt.Errorf("cannot modify SOUL.md: self-evolution is disabled for this agent")
+	if f.guard != nil {
+		if err := f.guard(resolved); err != nil {
+			return nil, err
 		}
 	}
 	os.MkdirAll(filepath.Dir(resolved), 0755)
@@ -238,14 +224,9 @@ func (f *Filesystem) editFile(args json.RawMessage) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Context file write guard
-	if f.agentType == "predefined" {
-		base := filepath.Base(resolved)
-		if predefinedImmutableFiles[base] {
-			return nil, fmt.Errorf("cannot modify %s: immutable for predefined agents", base)
-		}
-		if base == "SOUL.md" && !f.selfEvolve {
-			return nil, fmt.Errorf("cannot modify SOUL.md: self-evolution is disabled for this agent")
+	if f.guard != nil {
+		if err := f.guard(resolved); err != nil {
+			return nil, err
 		}
 	}
 	data, err := os.ReadFile(resolved)
