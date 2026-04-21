@@ -14,8 +14,8 @@ import (
 	"github.com/swiftdiaries/openharness/tools"
 )
 
-// allowedCommands lists commands that are permitted to run.
-var allowedCommands = map[string]bool{
+// readOnlyCommands are inspection-only commands — safe for Read/Neutral effect.
+var readOnlyCommands = map[string]bool{
 	"ls": true, "cat": true, "grep": true, "rg": true,
 	"git": true, "wc": true, "head": true, "tail": true,
 	"date": true, "echo": true, "pwd": true, "find": true,
@@ -23,6 +23,10 @@ var allowedCommands = map[string]bool{
 	"tr": true, "jq": true,
 	"which": true, "file": true, "stat": true, "tree": true,
 	"du": true, "df": true, "uname": true, "whoami": true,
+}
+
+// mutatingCommands modify the workspace — require Mutate effect.
+var mutatingCommands = map[string]bool{
 	"mkdir": true, "cp": true, "mv": true, "touch": true,
 }
 
@@ -45,19 +49,26 @@ func NewExec(workDir string) *Exec {
 }
 
 func (e *Exec) Definitions() []tools.ToolDefinition {
+	readParams := json.RawMessage(`{
+		"type": "object",
+		"properties": {
+			"command":    {"type": "string", "description": "Shell command to execute"},
+			"timeout_ms": {"type": "integer", "description": "Timeout in milliseconds (default 30000, max 120000)"}
+		},
+		"required": ["command"]
+	}`)
 	return []tools.ToolDefinition{
 		{
-			Name:        "exec",
-			Description: "Execute a shell command in the workspace. Dangerous commands are blocked.",
-			Parameters: json.RawMessage(`{
-				"type": "object",
-				"properties": {
-					"command": {"type": "string", "description": "Shell command to execute"},
-					"timeout_ms": {"type": "integer", "description": "Timeout in milliseconds (default 30000, max 120000)"}
-				},
-				"required": ["command"]
-			}`),
-			Effects: tools.ToolEffectNeutral,
+			Name:        "exec_read",
+			Description: "Execute a read-only shell command (ls, cat, grep, git-status, etc.) in the workspace. Mutating commands are not allowed here — use exec_mutate.",
+			Parameters:  readParams,
+			Effects:     tools.ToolEffectNeutral,
+		},
+		{
+			Name:        "exec_mutate",
+			Description: "Execute a workspace-mutating shell command (mkdir, cp, mv, touch).",
+			Parameters:  readParams,
+			Effects:     tools.ToolEffectMutate,
 		},
 	}
 }
@@ -69,8 +80,10 @@ var shellMetacharacters = []string{
 	"\n", "\r", "*", "?", "{", "}", "~",
 }
 
-// IsAllowed checks if a command is on the allow list. Exported for testing.
-func IsAllowed(command string) bool {
+// allowedFor returns whether `command` is allowed under the given
+// definition name (exec_read or exec_mutate). Shared metachar and
+// deny-pattern checks still apply.
+func allowedFor(name, command string) bool {
 	trimmed := strings.TrimSpace(command)
 	if trimmed == "" {
 		return false
@@ -90,11 +103,24 @@ func IsAllowed(command string) bool {
 	if shellWrappers[base] {
 		return false
 	}
-	return allowedCommands[base]
+	switch name {
+	case "exec_read":
+		return readOnlyCommands[base]
+	case "exec_mutate":
+		return mutatingCommands[base]
+	}
+	return false
+}
+
+// IsAllowed checks if a command is on either allow list. Exported for testing.
+// Preserves the pre-split behavior where any safe command — read or mutate —
+// returns true.
+func IsAllowed(command string) bool {
+	return allowedFor("exec_read", command) || allowedFor("exec_mutate", command)
 }
 
 func (e *Exec) Execute(ctx context.Context, name string, args json.RawMessage) (json.RawMessage, error) {
-	if name != "exec" {
+	if name != "exec_read" && name != "exec_mutate" {
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}
 
@@ -106,9 +132,9 @@ func (e *Exec) Execute(ctx context.Context, name string, args json.RawMessage) (
 		return nil, err
 	}
 
-	if !IsAllowed(params.Command) {
-		slog.Warn("security.exec_denied", "command", params.Command)
-		return nil, fmt.Errorf("command not allowed: %q", params.Command)
+	if !allowedFor(name, params.Command) {
+		slog.Warn("security.exec_denied", "name", name, "command", params.Command)
+		return nil, fmt.Errorf("command not allowed for %s: %q", name, params.Command)
 	}
 
 	timeout := 30 * time.Second
