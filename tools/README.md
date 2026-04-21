@@ -6,17 +6,15 @@ The `tools` package defines the generic tool surface the openharness agent loop 
 
 ## The Tool interface
 
-`ToolDefinition` (see `tools/tool.go:62`) describes one callable surface the LLM sees. A single Tool may publish several definitions — effects and visibility are per-definition, not per-Tool.
+`ToolDefinition` (see `tools/tool.go:62`) describes one callable surface the LLM sees. A single Tool may publish several definitions — effects are per-definition, not per-Tool.
 
 ```go
 type ToolDefinition struct {
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
 	Parameters  json.RawMessage `json:"parameters"`
-	// Effects and Visibility are framework-internal metadata and MUST NOT
-	// be serialized to the LLM — the `json:"-"` tag is load-bearing.
-	Effects    ToolEffect     `json:"-"`
-	Visibility ToolVisibility `json:"-"`
+	// Effects is framework-internal metadata and MUST NOT be serialized to the LLM — the `json:"-"` tag is load-bearing.
+	Effects ToolEffect `json:"-"`
 }
 ```
 
