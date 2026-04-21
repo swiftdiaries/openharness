@@ -7,31 +7,32 @@
 | Field | Value |
 |-------|-------|
 | Epic | `openharness-bv0` |
-| Status | in_progress |
+| Status | complete |
+| Completed | 2026-04-21 |
 | Worktree | `/Users/adhita/projects/python/src/github.com/swiftdiaries/openharness/.claude/worktrees/beautiful-hermann-3d3ef2` (branch: `claude/beautiful-hermann-3d3ef2`) |
 
 | Task | Beads ID | Status |
 |------|----------|--------|
-| Task 1: SSRF redirect bypass in web_fetch | `openharness-bv0.1` | open |
-| Task 2: DNS TOCTOU — pin resolved IP through dialer | `openharness-bv0.2` | open |
-| Task 3: Expand exec metacharacter blocklist | `openharness-bv0.3` | open |
-| Task 4: Scrub credentials on Read-effect tool outputs | `openharness-bv0.5` | open |
-| Task 5: Wrap external content in web_search + knowledge_graph | `openharness-bv0.6` | open |
-| Task 6: Reject empty WorkspacePath in Register | `openharness-bv0.4` | open |
-| Task 7: Split exec into read-only and mutating definitions | `openharness-bv0.7` | open |
-| Task 8: Tighten memory + tasks file permissions to 0600 | `openharness-bv0.8` | open |
-| Task 9: Registry name-collision guard + delete deferredActivator | `openharness-bv0.9` | open |
-| Task 10: Delete unused ToolVisibility | `openharness-bv0.10` | open |
-| Task 11: Extract filesystem write-guard as injectable callback | `openharness-bv0.11` | open |
-| Task 12: Delete DefaultWorkspace (~/.ghostfin/workspace) | `openharness-bv0.12` | open |
-| Task 13: Rename GhostFin User-Agent to openharness | `openharness-bv0.13` | open |
-| Task 14: Add tools/README.md for tool authors | `openharness-bv0.14` | open |
-| Task 15: Add httptest round-trip tests for web_fetch + web_search | `openharness-bv0.15` | open |
-| Task 16: Fix dropped errors and shadowed err | `openharness-bv0.16` | open |
-| Task 17: Add TODO(plan-4) marker in ask_user test | `openharness-bv0.17` | open |
+| Task 1: SSRF redirect bypass in web_fetch | `openharness-bv0.1` | closed |
+| Task 2: DNS TOCTOU — pin resolved IP through dialer | `openharness-bv0.2` | closed |
+| Task 3: Expand exec metacharacter blocklist | `openharness-bv0.3` | closed |
+| Task 4: Scrub credentials on Read-effect tool outputs | `openharness-bv0.5` | closed |
+| Task 5: Wrap external content in web_search + knowledge_graph | `openharness-bv0.6` | closed |
+| Task 6: Reject empty WorkspacePath in Register | `openharness-bv0.4` | closed |
+| Task 7: Split exec into read-only and mutating definitions | `openharness-bv0.7` | closed |
+| Task 8: Tighten memory + tasks file permissions to 0600 | `openharness-bv0.8` | closed |
+| Task 9: Registry name-collision guard + delete deferredActivator | `openharness-bv0.9` | closed |
+| Task 10: Delete unused ToolVisibility | `openharness-bv0.10` | closed |
+| Task 11: Extract filesystem write-guard as injectable callback | `openharness-bv0.11` | closed |
+| Task 12: Delete DefaultWorkspace (~/.ghostfin/workspace) | `openharness-bv0.12` | closed (folded into T11 commit) |
+| Task 13: Rename GhostFin User-Agent to openharness | `openharness-bv0.13` | closed |
+| Task 14: Add tools/README.md for tool authors | `openharness-bv0.14` | closed |
+| Task 15: Add httptest round-trip tests for web_fetch + web_search | `openharness-bv0.15` | closed |
+| Task 16: Fix dropped errors and shadowed err | `openharness-bv0.16` | closed |
+| Task 17: Add TODO(plan-4) marker in ask_user test | `openharness-bv0.17` | closed |
 
 **Follow-ups filed during execution (not blocking):**
-- (none yet)
+- (none — all review findings were fixed inline or were already in-scope of a planned task)
 
 **Goal:** Address security and hygiene findings from the 2026-04-21 daily code review of the Layer 2 Plan 3 (tools/core) port.
 
