@@ -196,12 +196,16 @@ func (t *TaskCRUD) load() []TaskItem {
 		return nil
 	}
 	var tasks []TaskItem
-	json.Unmarshal(data, &tasks)
+	if err := json.Unmarshal(data, &tasks); err != nil {
+		return nil
+	}
 	return tasks
 }
 
 func (t *TaskCRUD) save(tasks []TaskItem) error {
-	os.MkdirAll(filepath.Dir(t.storePath), 0700)
+	if err := os.MkdirAll(filepath.Dir(t.storePath), 0700); err != nil {
+		return fmt.Errorf("mkdir tasks dir: %w", err)
+	}
 	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		return err

@@ -167,7 +167,9 @@ func (f *Filesystem) writeFile(args json.RawMessage) (json.RawMessage, error) {
 			return nil, err
 		}
 	}
-	os.MkdirAll(filepath.Dir(resolved), 0755)
+	if err := os.MkdirAll(filepath.Dir(resolved), 0755); err != nil {
+		return nil, fmt.Errorf("mkdir parent dir: %w", err)
+	}
 	if err := os.WriteFile(resolved, []byte(params.Content), 0644); err != nil {
 		return nil, err
 	}
