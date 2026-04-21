@@ -19,9 +19,22 @@ type WebFetch struct {
 	client *http.Client
 }
 
-// NewWebFetch creates a new WebFetch tool.
+// NewWebFetch creates a new WebFetch tool. The HTTP client re-runs CheckSSRF
+// on every redirect hop to prevent SSRF bypass via attacker-controlled 3xx.
 func NewWebFetch() *WebFetch {
-	return &WebFetch{client: &http.Client{Timeout: 30 * time.Second}}
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return http.ErrUseLastResponse
+			}
+			if err := tools.CheckSSRF(req.URL.String()); err != nil {
+				return fmt.Errorf("SSRF blocked on redirect: %w", err)
+			}
+			return nil
+		},
+	}
+	return &WebFetch{client: client}
 }
 
 func (w *WebFetch) Definitions() []tools.ToolDefinition {
