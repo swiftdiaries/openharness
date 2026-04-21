@@ -62,9 +62,12 @@ func (e *Exec) Definitions() []tools.ToolDefinition {
 	}
 }
 
-// shellMetacharacters contains patterns that allow shell injection when
-// commands are passed to sh -c. We reject these before checking the allowlist.
-var shellMetacharacters = []string{";", "|", "&&", "||", "`", "$(", ">", "<"}
+// shellMetacharacters rejects any character that has special meaning to
+// sh -c. Kept permissive on space/tab so normal args still parse.
+var shellMetacharacters = []string{
+	";", "|", "&", "`", "$(", "${", ">", "<",
+	"\n", "\r", "*", "?", "{", "}", "~",
+}
 
 // IsAllowed checks if a command is on the allow list. Exported for testing.
 func IsAllowed(command string) bool {
