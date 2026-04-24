@@ -1,8 +1,10 @@
 # OpenHarness Extraction — Design Spec
 
 **Date:** 2026-04-10
-**Status:** Draft
+**Status:** Draft (Layer 1 shipped; Layer 2 in progress; Layer 1.5 adoption enrichments in flight for v0.2.0)
 **Depends on:** ghostfin harness interfaces (already implemented in `desktop/pkg/harness/`)
+**Companion specs:**
+- [`specs/2026-04-14-ghostfin-openharness-adoption-design.md`](../../../../ghostfin/docs/superpowers/specs/2026-04-14-ghostfin-openharness-adoption-design.md) — ghostfin/desktop consumer-side adoption; drives Layer 1.5 openharness changes.
 
 ## Context
 
@@ -25,7 +27,30 @@ Today, building a new vertical means forking the entire ghostfin desktop codebas
 
 - Python pipeline framework (verticals own their pipelines, connected via HTTP tools)
 - Vertical-specific enterprise features (Nile multi-tenancy, billing, RBAC policies — these stay in vertical-specific enterprise repos)
-- Breaking changes to existing ghostfin functionality during migration
+- Breaking changes to existing ghostfin functionality during migration (ghostfin keeps working; new openharness surfaces are additive from ghostfin's perspective)
+- **Cross-language harness implementations.** LangGraph (Python), AutoGen (Python), Temporal workflows, or any non-Go orchestrator as a pluggable `HarnessRunner` / `LoopFactory`. Cross-language integration is via Layer 6 HTTP+SSE as *clients*, not as runners. See §Scope & Language Boundaries.
+- **API stability before v1.0.0.** Breaking changes during the `0.x` series are expected and tracked per adoption spec. v0.2.0 intentionally breaks v0.1.0 to enrich `harness.Event`, `EventStream`, and `LoopFactory` based on real-consumer (ghostfin/desktop) needs.
+
+### Scope & Language Boundaries
+
+openharness is opinionated. Being "THE framework for building harnesses" for us means:
+
+**In scope:**
+- **Go-native harness authoring.** Verticals write Go; openharness provides interfaces, Lite impls, generic Enterprise impls.
+- **Claude-Code-style interactive agent UX.** Agent loops with plan mode, todo tracking, `ask_user` with suggestion chips, permission prompts, OAuth flows, streaming chunks. This vocabulary is reified in `harness.Event` and its constants.
+- **Cross-language *consumers* via Layer 6.** HTTP+JSON+SSE contract under `/v1`; Go SDK ships v1, TS/Python codegen-ready. A Python app can drive an openharness session, receive events, and post tool results — as a client.
+
+**Out of scope (with rationale):**
+- **Cross-language *runners*.** `LoopFactory` is a Go function type; `EventStream` is a pull-based iterator over a Go channel. Adopting a push-based async orchestrator (LangGraph graph execution, AutoGen message loops, Temporal durable workflows) as a native harness backend would require a language-agnostic runner protocol (stdio JSON-RPC, gRPC, or similar) and a neutralized event vocabulary. We considered this and chose to narrow scope instead — the Claude-Code-shaped harness is the product.
+- **Agent paradigms that aren't interactive chat.** Multi-agent supervisors, graph-based flows, and long-running durable workflows don't map cleanly onto the current `Dispatch → EventStream → Next()` shape. Verticals that need these should either (a) consume openharness as a tool via Layer 6 HTTP, or (b) build on a different framework.
+
+**Integration options for non-Go agent frameworks:**
+| Pattern | Supported today | How |
+|---------|----------------|-----|
+| Python app calls openharness | ✅ | Layer 6 HTTP+SSE client (TS/Python codegen pending) |
+| openharness calls Python tool | ✅ | MCP tool (`type: "mcp"`) or custom tool executed out-of-band |
+| Python/LangGraph as `HarnessRunner` | ❌ | Non-goal; would need cross-language runner protocol |
+| Python/LangGraph as `LoopFactory` | ❌ | Non-goal; `LoopFactory` is a Go function type |
 
 ### Key Decisions
 
@@ -48,22 +73,24 @@ Status snapshot. Updated as layers ship.
 
 | Layer | Status | Spec | Plan(s) | Release |
 |-------|--------|------|---------|---------|
-| Layer 1 — harness boundary | ✓ shipped | (this doc, §Layer 1) | [`plans/2026-04-10-openharness-extraction-layer1.md`](../plans/2026-04-10-openharness-extraction-layer1.md) | [v0.1.0](https://github.com/swiftdiaries/openharness/releases/tag/v0.1.0) |
+| Layer 1 — harness boundary | ✓ v0.1.0 shipped | (this doc, §Layer 1) | [`plans/2026-04-10-openharness-extraction-layer1.md`](../plans/2026-04-10-openharness-extraction-layer1.md) | [v0.1.0](https://github.com/swiftdiaries/openharness/releases/tag/v0.1.0) |
+| Layer 1.5 — adoption enrichments | in progress | [ghostfin adoption spec](../../../../ghostfin/docs/superpowers/specs/2026-04-14-ghostfin-openharness-adoption-design.md) (companion) | tracked in beads | v0.2.0 (pending) |
 | Layer 2 — agent primitives | in progress (Plans 1–3 merged; Plan 4 next) | [`specs/2026-04-13-openharness-layer-2-agent-primitives-design.md`](2026-04-13-openharness-layer-2-agent-primitives-design.md), [`specs/2026-04-16-plan-3-tools-design.md`](2026-04-16-plan-3-tools-design.md) | [`plans/layer-2/2026-04-13-execution-order.md`](../plans/layer-2/2026-04-13-execution-order.md) + per-plan | v0.2.0 (pending) |
 | Layer 3 — infrastructure | not started | — (spec TBD) | — | — |
 | Layer 4 — app scaffold | not started | — (spec TBD) | — | — |
 | Layer 5 — enterprise implementations | not started | — (spec TBD) | — | — |
 | Layer 6 — end-user SDK | design complete | [`specs/2026-04-17-layer-6-sdk-design.md`](2026-04-17-layer-6-sdk-design.md) | — | — |
 
-**Next unblocked work:** Layer 2 Plan 4 — MCP outbound + UIBridge. Plan 3 (tools) merged.
+**Next unblocked work:** Layer 2 Plan 4 (MCP outbound + UIBridge) and Layer 1.5 event/runner enrichments run in parallel; v0.2.0 ships when both tracks land.
 
-**Tracking:** beads epic `openharness-pol`. Each layer is a child feature (`openharness-pol.1` … `openharness-pol.6`); Layer 2 plans are grandchildren (`openharness-pol.2.1` … `openharness-pol.2.8`). Useful commands:
+**Tracking:** beads epic `openharness-pol`. Layers are children (`openharness-pol.1` … `openharness-pol.6`); Layer 2 plans are grandchildren (`openharness-pol.2.1` … `openharness-pol.2.8`); Layer 1.5 lives under Layer 1 (`openharness-pol.7` with children `.7.1` … `.7.8`). Ghostfin-side adoption work is tracked separately in the ghostfin beads project under `ghostfin-9b3`. Useful commands:
 
 - `bd ready` — next unblocked work
 - `bd graph openharness-pol.6` — full layer chain (L1 → L6)
 - `bd graph openharness-pol.2.8` — Layer 2 plan chain
 - `bd list --parent=openharness-pol --all` — all layer children
 - `bd list --parent=openharness-pol.2 --all` — all Layer 2 plan children
+- `bd list --parent=openharness-pol.7 --all` — Layer 1.5 adoption-enrichment tasks
 
 ---
 
@@ -400,6 +427,30 @@ Incremental extraction from `ghostfin/desktop/` → `openharness/`. Each layer i
 Also move enterprise testutil from `ghostfin-enterprise/internal/testutil/` → `openharness/harness/enterprise/testutil/`.
 
 Update `ghostfin/desktop` imports: `github.com/swiftdiaries/ghostfin/desktop/pkg/harness` → `github.com/swiftdiaries/openharness/harness`.
+
+### Layer 1.5: Adoption Enrichments (v0.2.0)
+
+Driven by the ghostfin/desktop adoption spec ([companion](../../../../ghostfin/docs/superpowers/specs/2026-04-14-ghostfin-openharness-adoption-design.md)). v0.1.0 shipped the interfaces and Lite impls; v0.2.0 enriches them with the fields and input surfaces a real consumer needs. Intentional breaking change — the `0.x` API is not stable.
+
+**openharness-side changes:**
+
+| Surface | Change |
+|---------|--------|
+| `harness.Event` (fields) | Add `Question`, `Suggestions`, `Todos`, `IsPlan`, `AuthURL`, `Payload`, `Position`, `Timestamp`. All JSON-tagged. Field order and tags match ghostfin's existing `agent.Event` (authoritative source). |
+| `harness.Event` (constants) | Add `EventPermissionRequest`, `EventAuthRequired`, `EventTodoUpdate`, `EventUserResponse`, `EventUserMessage`. Reconcile: `EventAskUser = "ask.user"` (was `"ask_user"` in ghostfin — openharness's dot-separated convention wins). |
+| `harness.RunConfig` | Add `InitialEvents []Event` — bootstrap-only conversation prefix + current user turn. Superseded by `SessionStore` when Layer 3 lands; forward-compat is partial, not seamless. |
+| `harness.EventStream` | Add `Send(ctx, Event) error` — consumer → loop input channel for user responses, permission decisions, plan approvals. Resolves the back-channel gap flagged by adoption-spec adversarial review (CR-1). |
+| `harness/lite.LoopFactory` | Signature gains `inputs <-chan Event`. Factory ranges over it; `EventStream.Send` writes to it. |
+| `harness/lite.LiteRunner` | Stamp `Position` (monotonic counter; Position 1 = first event) and `Timestamp` (`time.Now()`) on all output events via a dedicated stamper goroutine. Input events (via `Send`) are not stamped — they're transient, not part of the durable output stream. |
+
+**Scope limits:**
+- Does not touch Layer 2 extraction. `internal/agent` stays in ghostfin through v0.2.0; Layer 2 plans move it afterward.
+- Does not introduce a new runner kind, store interface, or authentication model.
+- No cross-language impact — all changes are Go types/interfaces/runtime.
+
+**Release coordination:** openharness tags v0.2.0 first. ghostfin's companion PR-A references the real tag (not a pseudo-version or `replace` directive). An rc tag (`v0.2.0-rc1`) de-risks the module-artifact vs `go.work` divergence before the final tag.
+
+**Tracking:** beads parent bead under `openharness-pol`; adversarial-review blockers (CR-1, CR-2, CR-4) filed as children. Consumer-side work (CR-3, S-2, ghostfin callsite migrations) tracked in ghostfin's beads project.
 
 ### Layer 2: Agent Primitives
 
