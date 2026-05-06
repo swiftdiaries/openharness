@@ -15,7 +15,7 @@ This repo uses [beads](https://github.com/steveyegge/beads) for all task trackin
 - `bd update <id> --claim` — claim work atomically
 - `bd close <id>` — mark complete
 
-The tracking epic for the framework build-out is `openharness-pol`; each layer is a child (`openharness-pol.1` … `openharness-pol.6`). See `AGENTS.md` for the full workflow and the session-close protocol (commit, `bd dolt push`, `git push`).
+The tracking epic for the framework build-out is `openharness-pol`; the six layers are children (`openharness-pol.1` … `openharness-pol.6`), with Layer 1.5 — adoption enrichments for v0.2.0 — tracked alongside as `openharness-pol.7`. Layer 2 plans are grandchildren (`openharness-pol.2.1` … `openharness-pol.2.8`); use `bd graph openharness-pol.2` for the full Layer 2 chain. See `AGENTS.md` for the full workflow and the session-close protocol (commit, `bd dolt push`, `git push`).
 
 ## Design docs and plans
 
