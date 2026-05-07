@@ -89,6 +89,7 @@ func (r *Registry) Categories() []ToolCategory {
 
 	var result []ToolCategory
 	for cat, defs := range catTools {
+		sort.Slice(defs, func(i, j int) bool { return defs[i].Name < defs[j].Name })
 		result = append(result, ToolCategory{Name: cat, Count: len(defs), Tools: defs})
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
@@ -108,6 +109,9 @@ func (r *Registry) ToolsByCategory(cat string) []Tool {
 			}
 		}
 	}
+	sort.Slice(result, func(i, j int) bool {
+		return firstDefinitionName(result[i]) < firstDefinitionName(result[j])
+	})
 	return result
 }
 
@@ -122,4 +126,12 @@ func (r *Registry) ToolsByNames(names ...string) []Tool {
 		}
 	}
 	return result
+}
+
+func firstDefinitionName(t Tool) string {
+	defs := t.Definitions()
+	if len(defs) == 0 {
+		return ""
+	}
+	return defs[0].Name
 }
