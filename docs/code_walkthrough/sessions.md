@@ -59,7 +59,7 @@ All use `t.TempDir()`.
 ## Open questions / gaps
 
 1. **Why does this exist?** No caller. Either extracted-but-not-yet-wired, legacy from ghostfin, or earmarked for a CLI/local tool.
-2. **Overlap with `harness/lite`.** The lite package likely ships its own `harness.SessionStore` impl. Whether `sessions/` duplicates that or is a strictly simpler API needs a depth-2 check (see [harness](./harness.md) follow-ups).
+2. **No overlap with `harness/lite` — answered.** `harness/lite/` does not ship a `LiteSessionStore`; only seven of the eight Layer 1 interfaces are implemented. `sessions/` is therefore the only session-log impl in the module today, and it is structurally unrelated to `harness.SessionStore`.
 3. **No tenancy or context.** Cannot satisfy `harness.SessionStore`; would need a wrapper if it ever gets adapted.
 4. **No fsync.** `AppendMessage` writes JSONL but doesn't fsync — fine for desktop, risky if reused under crash conditions.
 5. **No purpose statement.** No package doc-comment, no README; reviewer should ask the maintainer where this is meant to live.

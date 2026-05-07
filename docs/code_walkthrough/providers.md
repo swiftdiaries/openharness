@@ -6,7 +6,7 @@ First-depth walkthrough of `providers/`.
 
 `providers` is the LLM provider abstraction: a small `Provider` interface, three concrete impls (Anthropic SDK, OpenAI-compatible HTTP, OpenRouter as a thin wrapper over OpenAI-compat), a registry, secret resolution, and a hardcoded model context-window table. It is the LLM seam for the agent loop.
 
-**Importers (today):** `agent/` consumes its types implicitly (re-defined in `agent.LLMCallInfo` for decoupling); the package itself imports `harness.SecretStore` to support `secret:` URI resolution.
+**Importers (today):** no in-module importer of `providers/` other than tests — `agent.LLMCallInfo` mirrors `providers.Usage` deliberately to keep the packages decoupled. The package itself imports `harness.SecretStore` to support `secret:` URI resolution.
 
 ## Files at depth 1
 
@@ -38,7 +38,7 @@ First-depth walkthrough of `providers/`.
 
 ### Concrete providers
 
-- **Anthropic** — [`anthropic.go`](../../providers/anthropic.go). `NewAnthropicProvider(apiKey, defaultModel)` ([`anthropic.go:27`](../../providers/anthropic.go)). Full `Provider` impl including real SSE streaming via SDK ([`anthropic.go:81-111`](../../providers/anthropic.go)) and prompt caching via `prompt_cache_system` option ([`anthropic.go:166-191`](../../providers/anthropic.go)).
+- **Anthropic** — [`anthropic.go`](../../providers/anthropic.go). `NewAnthropicProvider(name, apiKey, defaultModel)` ([`anthropic.go:27`](../../providers/anthropic.go)). Full `Provider` impl including real SSE streaming via SDK ([`anthropic.go:81-111`](../../providers/anthropic.go)) and prompt caching via `prompt_cache_system` option ([`anthropic.go:166-191`](../../providers/anthropic.go)).
 - **OpenAI-compatible** — [`openai_compat.go`](../../providers/openai_compat.go). `NewOpenAICompatProvider(name, apiBase, apiKey, defaultModel)` ([`openai_compat.go:30`](../../providers/openai_compat.go)). 120s HTTP timeout. Retry loop for 429/502/503 ([`openai_compat.go:45-126`](../../providers/openai_compat.go)). **`ChatStream` falls back to `Chat`** ([`openai_compat.go:129-131`](../../providers/openai_compat.go)).
 - **OpenRouter** — `CallOpenRouter` helper ([`openrouter.go:50-63`](../../providers/openrouter.go)) constructs an `OpenAICompatProvider` against `https://openrouter.ai/api/v1`. Not a separate type; legacy convenience surface.
 

@@ -126,9 +126,9 @@ stdlib only at depth 1: `context`, `encoding/json`, `io`, `time`, `errors`, `fmt
 
 These belong to a depth-2 walkthrough of `harness/lite/`:
 
-1. How does `LiteRunner` actually execute the agent loop? Embedded goroutine; does it use `tools/` directly?
-2. Does `harness/lite/` provide a session store that satisfies `harness.SessionStore`? If so, is it filesystem- or in-memory-backed? How does it relate to the parallel `sessions/` package (see [sessions](./sessions.md))?
-3. Where is the wiring point — the place that constructs all eight subsystems and hands them to a gateway? At depth 1 there is no such constructor.
+1. **`LiteRunner` execution — answered.** Goroutine-based; accepts a caller-supplied `LoopFactory` ([`harness/lite/runner.go:20`](../../harness/lite/runner.go)) — `func(ctx, RunConfig, chan<- Event) error`. The runner doesn't use `tools/` directly; the loop the caller supplies does. `Resume` returns `ErrNotFound` (no durability).
+2. **`LiteSessionStore` — answered.** It does not exist. `harness/lite/satisfy_test.go` asserts seven Lite types satisfy boundary interfaces; `SessionStore` is not asserted. The standalone `sessions/` package is unrelated to `harness.SessionStore` (see [sessions](./sessions.md)).
+3. **Wiring point — answered.** No assembly site exists at depth 1. PR-L2-8 of the Layer 2 plan introduces `openharness/app` (registration surface only); full lifecycle lands in Layer 4. Today callers wire each subsystem manually.
 4. `ToolRegistry.VerifyTool` semantics (endpoint reachability? schema validation?) — defined only by interface; proof is in lite impl.
 5. `SandboxPolicy` enforcement: which runners actually consult it? At depth 1 it is purely a data type.
 6. `defaultPollInterval = 200ms` ([`stream_store.go:10`](../../harness/stream_store.go)) — not configurable; remote runners may want backoff.

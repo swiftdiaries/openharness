@@ -31,7 +31,7 @@ This is the primary extension point for any vertical that wants to give an agent
 
 `tools/core/` (NOT walked here). Filenames observed:
 
-- `core.go`, `ask_user.go`, `exec.go`, `filesystem.go`, `memory.go`, `knowledge_graph.go`, `knowledge_graph_types.go`, `subagent.go`, `tasks.go`, `web_fetch.go`, `external_output.go`.
+- `core.go`, `ask_user.go`, `exec.go`, `filesystem.go`, `memory.go`, `knowledge_graph.go`, `knowledge_graph_types.go`, `subagent.go`, `tasks.go`, `web_fetch.go`, `web_search.go`, `external_output.go`.
 - Test files for each.
 
 These are the bundled built-in tools, registered together by `core.Register(registry, core.Config{...})`.
@@ -66,8 +66,8 @@ These are the bundled built-in tools, registered together by `core.Register(regi
 ### Security primitives
 
 - **SSRF guard** — [`ssrf.go:52-87`](../../tools/ssrf.go) — `CheckSSRF(rawURL) error`. Blocked hostnames at [`ssrf.go:10-26`](../../tools/ssrf.go) (`localhost`, `metadata.google.internal`, `*.local`, `*.internal`, `*.localhost`). Private CIDRs at [`ssrf.go:28-48`](../../tools/ssrf.go) (RFC 1918 + IPv6 link-local + ULA + carrier NAT). DNS pinning helper `ResolveAndCheck(host)` at [`ssrf.go:92-115`](../../tools/ssrf.go).
-- **Shell deny** — [`shell_deny.go:8-37`](../../tools/shell_deny.go) — 7 regexes: `rm -rf`, `rm -fr`, `rmdir /s`, `mkfs`, `dd if`, `shutdown|reboot|poweroff|halt`, fork-bomb `:(){:|:&};:`, git destructive (`git push --force`, `git reset --hard`, `git clean -f`).
-- **Credential scrubbing** — [`scrub.go:5-37`](../../tools/scrub.go) — 9 patterns: OpenAI `sk-...`, Anthropic `sk-ant-...`, GitHub PATs, AWS `AKIA...`, bearer tokens, generic `api_key=...`/`token=...`/`secret=...`/`password=...`, connection strings (postgres/mysql/mongodb/redis/amqp), env-var-style values, 64+ hex.
+- **Shell deny** — [`shell_deny.go:8-27`](../../tools/shell_deny.go) — 9 regex patterns: `rm -rf`, `rm -fr`, `rmdir /s`, `mkfs`, `dd if`, `shutdown|reboot|poweroff|halt|init [06]`, fork-bombs `:(){...}` and `.(){...}`, git destructive (`git push --force` / `git reset --hard` / `git clean -f`).
+- **Credential scrubbing** — [`scrub.go:5-29`](../../tools/scrub.go) — 14 regex patterns across 9 categories: OpenAI `sk-...`, Anthropic `sk-ant-...`, GitHub PATs (5 prefixes: `ghp_`/`gho_`/`ghu_`/`ghs_`/`ghr_`), AWS `AKIA...`, bearer tokens, generic `api_key=...`/`token=...`/`secret=...`/`password=...`, connection strings (postgres/mysql/mongodb/redis/amqp), env-var-style values (KEY/SECRET/CREDENTIAL/PRIVATE + DSN/DATABASE_URL family), 64+ hex.
 - **External content marking** — [`external_content.go:14-16`](../../tools/external_content.go) — `WrapExternalContent(s)` returns delimited untrusted text with explicit security notice for the LLM.
 
 ## Pluggability hooks
@@ -109,7 +109,7 @@ stdlib only at depth 1: `context`, `encoding/json`, `fmt`, `net`, `net/url`, `re
 
 1. **No registry test for the effect-validation path** — `registry_test.go` covers collisions but not Unspecified rejection.
 2. **`Composite.Definitions` does not deduplicate** — relies on registry upstream for collision prevention. If two composed tools both expose name `web_fetch`, the first wins silently.
-3. **DNS rebind window**: `CheckSSRF` resolves once; the actual HTTP dial is a separate resolution. `ResolveAndCheck` returns IPs to pin, but callers must wire that into a `net.Dialer.Control`. Verify the actual `web_fetch` tool does this in `tools/core/web_fetch.go` (depth-2).
+3. **DNS rebind protection — answered.** `tools/core/web_fetch.go` wires `ResolveAndCheck` into a custom `DialContext` ([line 43](../../tools/core/web_fetch.go)) that pins DNS at validation time and dials by resolved IP. The redirect callback ([line 67](../../tools/core/web_fetch.go)) revalidates with `CheckSSRF`; pre-fetch validation ([line 107](../../tools/core/web_fetch.go)) closes the loop. The seam is real and consumed.
 4. **Hex-64 scrub false positives**: SHA-256 hashes, build IDs, and commit hashes get redacted. The test set explicitly accepts this.
 5. **Effect → loop semantics**: README references "Plan 5's loop" using effects to gate ModePlan; that loop isn't in the repo at depth 1. The data is in place; the consumer is missing.
 6. **Built-ins matrix**: `tools/core/` has a referenced canonical "D4 matrix" test; depth-2 walkthrough should map every built-in to its declared effect.

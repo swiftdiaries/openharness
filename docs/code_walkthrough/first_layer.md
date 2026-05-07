@@ -21,7 +21,6 @@ openharness/
 ├── edition/       Lite/Enterprise capability flags backed by atomic.Pointer; unused today
 ├── harness/       ★ The boundary: 8 interfaces + RunnerRegistry + StoreBackedEventStream
 │   └── lite/      Concrete in-process impls (depth-2; not walked here)
-├── openspec/      OpenSpec workspace; one active change: platform-builder-runtime
 ├── providers/     LLM Provider interface + Anthropic / OpenAI-compat / OpenRouter + Registry
 ├── sessions/      Standalone JSONL session log; does NOT implement harness.SessionStore
 ├── tools/         ★ Tool interface, effects-aware Registry, Composite, SSRF/shell-deny/scrub
@@ -41,7 +40,6 @@ Per-package walkthroughs (each has its own file in this directory):
 - [docs](./docs.md)
 - [edition](./edition.md)
 - [harness](./harness.md)
-- [openspec](./openspec.md)
 - [providers](./providers.md)
 - [sessions](./sessions.md)
 - [tools](./tools.md)
@@ -115,16 +113,16 @@ What's **missing** at depth 1:
 
 ## Cross-cutting observations
 
-1. **Vertical-specific defaults leak beyond `config/`.** `config/` has `~/.ghostfin/workspace`, `GHOSTFIN.md` discovery, and hardcoded `scribe`/`fund-analyst` agents (see [config](./config.md)). The same leak hits `harness/lite/agent.go:32-83` — `NewLiteAgentStoreWithSeeds` ships `fund-analyst`, `analyst`, `scribe`, and `executive-assistant` as Lite seeds. Layer 2 design key decision 8 explicitly commits to zero presets in `openharness/agent` and moves ghostfin agents back to `ghostfin/desktop/agents/` in PR-L2-9, so this is acknowledged debt with a planned fix; worth flagging because today's `harness/lite/` carries it.
+1. **Vertical-specific defaults leak beyond `config/`.** `config/` has `~/.ghostfin/workspace`, `GHOSTFIN.md` discovery, and hardcoded `scribe`/`fund-analyst` agents (see [config](./config.md)). The same leak hits `harness/lite/agent.go:32-83` — `NewLiteAgentStoreWithSeeds` seeds five agents: a generic `harness` plus the four ghostfin personas (`fund-analyst`, `analyst`, `scribe`, `executive-assistant`). Layer 2 design key decision 8 explicitly commits to zero presets in `openharness/agent` and moves the ghostfin agents back to `ghostfin/desktop/agents/` in PR-L2-9, so this is acknowledged debt with a planned fix; worth flagging because today's `harness/lite/` carries it.
 2. **Two parallel session implementations.** `sessions/` is JSONL-only, no context, no tenancy; `harness.SessionStore` is the multi-tenant event-log interface. They do not relate to each other. See [sessions](./sessions.md). A reviewer should ask whether `sessions/` is legacy and whether `harness/lite/` provides the canonical Lite session store.
 3. **`edition/` and `cost/` are orphan packages.** Both are well-tested and well-shaped, but neither is imported by another package at depth 1. They are framework stubs awaiting consumers.
-4. **OpenAI-compat streaming is silently a fallback.** `OpenAICompatProvider.ChatStream` calls `Chat` and synthesizes a single chunk ([`providers/openai_compat.go:129-131`](../../providers/openai_compat.go)). Important for any agent loop that expects token-by-token UX from OpenRouter / OpenAI.
+4. **OpenAI-compat streaming is silently a no-op fallback.** `OpenAICompatProvider.ChatStream` calls `Chat` and discards the streaming callback — no chunks are emitted ([`providers/openai_compat.go:128-130`](../../providers/openai_compat.go)). Important for any agent loop that expects token-by-token UX from OpenRouter / OpenAI.
 5. **No CI-level whole-module integration test.** Every package's tests are unit tests; there is no end-to-end harness assembly test at depth 1. `harness/lite/satisfy_test.go` only verifies interface conformance — and confirms only seven Lite types satisfy boundary interfaces.
 6. **Cross-language is an explicit non-goal.** The extraction spec's §Scope & Language Boundaries rejects Python/LangGraph/Temporal as `HarnessRunner` or `LoopFactory` — non-Go agent frameworks integrate as HTTP+SSE *clients* via Layer 6 only. For a "pluggable runtime" claim, this narrows the meaning: openharness is opinionated toward Claude-Code-shaped interactive agents, not framework-agnostic agent infra.
 
 ## Gaps & open questions
 
-Items 1, 2, 3, 5, 6, 7, and 8 from the depth-1 review are resolved by depth-2 reads across `harness/lite/`, `tools/`, `tools/core/`, `providers/`, `cost/`, and `edition/` plus the Layer 2 design spec. Item 4's *runtime* piece (the agent loop reading `ToolEffect` for mode gating) waits on Plan 5 to ship.
+Items 1, 2, 3, 5, 6, and 7 from the depth-1 review are resolved by depth-2 reads across `harness/lite/`, `tools/`, `tools/core/`, `providers/`, `cost/`, and `edition/` plus the Layer 2 design spec. Item 4's *runtime* piece (the agent loop reading `ToolEffect` for mode gating) waits on Plan 5 to ship.
 
 1. **Assembly point — answered.** No assembly point ships today. PR-L2-8 introduces `openharness/app` with `NewApp / Tools() / Agents() / Telemetry() / Frontend() / Run()` (registration surface only — full lifecycle lands in Layer 4). PR-L2-11 adds the `/create-openharness-app` scaffolder skill that pins this surface as a committed contract. Today, callers wire each subsystem manually and supply a `LoopFactory` to `LiteRunner`.
 2. **`harness/lite/` `SessionStore` — answered.** No `LiteSessionStore` exists; `harness/lite/` ships seven of the eight Layer 1 interfaces. The standalone `sessions/` package is a JSONL log moved as part of L2-0; it does not implement `harness.SessionStore`. The two are unrelated.
@@ -133,7 +131,6 @@ Items 1, 2, 3, 5, 6, 7, and 8 from the depth-1 review are resolved by depth-2 re
 5. **`cost.Tracker.Record` — answered, still orphan.** Tests are the only callers. Plan 1's `agent.CostTracker` interface points the loop at it; PR-L2-7 (the loop) is where the call site appears.
 6. **`edition.Current()` — answered, currently inert.** All callers are in `edition/edition_test.go`. No production code branches on the result.
 7. **`MCPServerConfig` consumer — answered.** Read only by `LiteAgentStore.Clone` for deep copy ([`harness/lite/agent.go:255-258`](../../harness/lite/agent.go)). No code attaches the configured MCP servers to a run. That consumer lands in PR-L2-5 (MCP outbound).
-8. **`docs/superpowers/specs/` vs `openspec/` — answered.** `docs/superpowers/specs/` is the authoritative design archive (per `docs/contributing.md`); `openspec/` is OpenSpec workspace tooling tracked independently. They coexist by intent.
 
 ## Take
 
@@ -157,11 +154,6 @@ These are reasonable for a desktop tier, but they sharpen what "ships the bounda
 **Layer 2 is in flight, not absent.** The depth-1 reviewer who reads only this module sees no `agent/loop.go` and concludes the loop is missing — accurate. But per the extraction spec's progress table, Layer 2 ships across 12 PRs (PR-L2-0 … PR-L2-11) grouped into plans, and Plans 1–3 (`agent/` interfaces, `providers/`, `tools/` with effects + `tools/core/`) are merged. What's still out for v0.2.0: Plan 4 (MCP outbound + UIBridge), Plan 5 (the actual `agent/loop.go`), Plan 8 (`openharness/app` registration surface), Plan 11 (the scaffolder skill), and the **Layer 1.5 break** — `harness.Event` field additions, `EventStream.Send`, and a `LoopFactory` signature change that intentionally breaks v0.1.0. Saying "agent loop missing" without naming Plan 5 understates the structure of the in-flight work.
 
 **Cross-language scope is opinionated.** The depth-1 review missed the spec's §Scope & Language Boundaries: Go-only `HarnessRunner` / `LoopFactory` is an explicit non-goal. Python/LangGraph/AutoGen/Temporal as runners or loops are *rejected*, not deferred; non-Go consumers integrate as HTTP+SSE clients via Layer 6 only. This narrows what "pluggable" means in practice and is a load-bearing design call worth surfacing in any review of the framework framing.
-
-**Two corrections to the depth-1 cross-cutting observations:**
-
-- The "5 layers vs 6 layers" doc-inconsistency claim does not survive verification. `README.md`, `docs/architecture.md`, `docs/roadmap.md`, and the extraction spec all say six. Earlier "5-layer" framing was in stale memory notes, not in any committed doc.
-- "OpenAI-compat streaming silently a fallback" is correct *and* explicitly committed: Layer 2 design key decision 3 keeps it stubbed as a fast-follow ticket. It's a known stub, not an oversight.
 
 **Depth-2 verification of Plans 1–3.** The merged plans ship with the rigor the specs commit to:
 

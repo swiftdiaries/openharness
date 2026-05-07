@@ -34,7 +34,6 @@ These are the assertions the code is being evaluated against:
 
 ## Open questions / gaps
 
-1. **Layer count discrepancy.** The README says "5-layer extraction"; architecture.md describes six layers. Reconcile.
-2. **Design specs referenced under `superpowers/specs/`** — verify they exist and stay in sync with the public-facing docs. Roadmap acknowledges the table is hand-maintained.
-3. **No per-layer doc template** in `contributing.md` — each PR chain decides its own doc shape.
-4. **`AGENTS.md` and `CLAUDE.md` at the repo root** are referenced by `contributing.md` for the bd workflow but the contents are not summarized; reviewer should skim those once.
+1. **Design specs referenced under `superpowers/specs/`** — verify they exist and stay in sync with the public-facing docs. Roadmap acknowledges the table is hand-maintained.
+2. **No per-layer doc template** in `contributing.md` — each PR chain decides its own doc shape.
+3. **`AGENTS.md` and `CLAUDE.md` at the repo root** are referenced by `contributing.md` for the bd workflow but the contents are not summarized; reviewer should skim those once.
