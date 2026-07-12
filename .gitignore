@@ -5,3 +5,4 @@
 
 # worktrees
 .worktrees/
+.kata.local.toml
