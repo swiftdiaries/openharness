@@ -1,6 +1,6 @@
 ## Why
 
-Layer 1 shipped (`v0.1.0`): eight swappable harness interfaces — `HarnessRunner`, `SessionStore`, `SecretStore`, `ArtifactStore`, `ToolRegistry`, `ChannelRouter`, `AgentStore`, `SkillStore` — plus Lite implementations of each. Layer 2 is mid-flight: Plans 1–3 landed (interfaces+concretes, providers including a native Anthropic with streaming and prompt caching, tools core + 9 built-ins with `Effects`-based classification); Plans 4–8 (MCP+UIBridge, agent loop, `openharness/app` registration surface, ghostfin import rewrite, examples+scaffolder) are open in beads. The interfaces and the Plan 6/8 deliverables prove "pluggable" mechanically — but the framing in docs and code is still **"the framework extracted from ghostfin"**, not **"a platform that builds platforms."**
+Layer 1 shipped (`v0.1.0`): eight swappable harness interfaces — `HarnessRunner`, `SessionStore`, `SecretStore`, `ArtifactStore`, `ToolRegistry`, `ChannelRouter`, `AgentStore`, `SkillStore` — plus Lite implementations of each. Layer 2 is mid-flight: Plans 1–3 landed (interfaces+concretes, providers including a native Anthropic with streaming and prompt caching, tools core + 9 built-ins with `Effects`-based classification); Plans 4–8 (MCP+UIBridge, agent loop, `openharness/app` registration surface, ghostfin import rewrite, examples+scaffolder) remain open in their execution plans. The interfaces and the Plan 6/8 deliverables prove "pluggable" mechanically — but the framing in docs and code is still **"the framework extracted from ghostfin"**, not **"a platform that builds platforms."**
 
 The forward goal we want to commit to: openharness is **a machine for building machines** — a runtime where any agentic application is composed by snapping together a runner, the seven stores, a tool catalog, and a vertical's domain code. To make that real (not just true-on-paper), three primitives are missing on top of what Layers 1–6 already plan:
 
@@ -28,7 +28,7 @@ Reframing now (rather than after Layers 3–6 land) means each remaining layer's
 **Non-goals** (deferred to follow-up changes):
 - Cross-language *runners* (LangGraph/AutoGen/Temporal as native `HarnessRunner` impls). Cross-language *consumers* via Layer 6 HTTP+SSE remain the supported path; the Scope & Language Boundaries decision in the upstream extraction spec stands.
 - Hot-reload of profile bindings at runtime, dynamic plugin loading (`buildmode=plugin`, `.so` files), config-format alternates beyond YAML/JSON, and a GUI for composition.
-- Changing the eight harness interfaces' method signatures. Composition is over them, not redesign of them. Breaking changes to interface methods stay tracked in their own changes (e.g., Layer 1.5 `EventStream.Send` lives under `openharness-pol.7`).
+- Changing the eight harness interfaces' method signatures. Composition is over them, not redesign of them. Breaking interface changes remain in their own changes, including the Layer 1.5 `EventStream.Send` work.
 - Migration of ghostfin's `desktop/main.go` to `compose.New(...)` — that lands in the Layer 2 Plan 7 / Layer 4 transition, owned by the ghostfin repo.
 
 ## Capabilities
@@ -51,7 +51,7 @@ Reframing now (rather than after Layers 3–6 land) means each remaining layer's
   - `docs/architecture.md` — lead section rewrites around composition (platform-builder framing).
   - `docs/superpowers/specs/2026-04-10-openharness-extraction-design.md` — adds a "Composition" subsection in §System Architecture; updates §Migration Strategy to key Layers 3–5 to profile bindings.
   - `docs/roadmap.md` — re-keys remaining work to profile bindings.
-- **Beads**: new epic `openharness-compose` with children for `compose` package, `profiles` package, YAML loader, docs reframe. Existing `openharness-pol.4` (Layer 4 app scaffold) and `openharness-pol.6` (Layer 6 SDK) gain dependencies on `openharness-compose`. Layer 2 plans 6 + 8 are referenced as tie-in points.
+- **OpenSpec**: this change's `tasks.md` tracks the `compose` package, `profiles` package, YAML loader, documentation reframe, and dependencies on Layer 2 Plans 6 and 8.
 - **Consumers**:
   - `ghostfin/desktop/main.go` — when Plan 7 lands the import rewrite, the new `main.go` will use `compose.New(profiles.Lite(), ...)` rather than ad-hoc store wiring. This change provides the API; ghostfin migration is out of scope here.
   - Future verticals + the scaffolder-generated reference vertical — entry path is `compose.New(profiles.Lite(), ...) + app.Tools().Register(...)`.

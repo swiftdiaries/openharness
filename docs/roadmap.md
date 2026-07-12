@@ -13,6 +13,6 @@ openharness ships in six layers. Each layer is an independent PR chain designed 
 
 **Next release.** v0.2.0 ships with Layer 2 complete — agent loop, tool system, and provider abstraction — plus the MCP outbound bridge and UI bridge from Plan 4.
 
-**Live status.** For up-to-the-minute state, run `bd ready` in a checkout, or inspect the tracking epic `openharness-pol` (`bd graph openharness-pol.6` for the full layer chain).
+**Live status.** Run `openspec list --json` to find active changes, then inspect a change with `openspec status --change <name>` and its `tasks.md`.
 
 > This table is maintained by hand. The authoritative source is the `## Progress` section of [the extraction design](superpowers/specs/2026-04-10-openharness-extraction-design.md); update both when layer status changes.

@@ -44,11 +44,11 @@ Today you consume openharness as a set of primitives.
 - **[Architecture](docs/architecture.md):** what's available today and how the pieces fit together
 - **[Roadmap](docs/roadmap.md):** layers, milestones, and what's next
 - **[Contributing](docs/contributing.md):** dev setup and workflow
-- **[beads](.beads):** where issue tracking lives
+- **[OpenSpec](openspec/):** active proposals, designs, capability specs, and implementation tasks
 
 ## Contributing
 
-- Work is tracked using [beads](https://github.com/steveyegge/beads)
+- Work is planned and tracked through [OpenSpec](openspec/changes/)
 - Design specs and execution plans live under `docs/superpowers/{specs,plans}/`
 
 ## License

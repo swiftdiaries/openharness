@@ -1,6 +1,6 @@
 ## Context
 
-OpenHarness is a Go framework being extracted from `ghostfin/desktop/` over six layers (see `docs/superpowers/specs/2026-04-10-openharness-extraction-design.md`). Layer 1 shipped as `v0.1.0` with eight harness interfaces and Lite implementations. Layer 2 is mid-flight: Plans 1–3 landed (interfaces + concretes for `cost`/`sessions`/`edition`/`config`, providers including a native Anthropic with streaming + prompt caching, tools core + 9 built-ins with `Effects`-based classification + tool-review hardening). Plans 4–8 are open in beads (MCP+UIBridge, agent loop, `openharness/app/` registration surface, ghostfin import rewrite, examples + `/create-openharness-app` scaffolder).
+OpenHarness is a Go framework being extracted from `ghostfin/desktop/` over six layers (see `docs/superpowers/specs/2026-04-10-openharness-extraction-design.md`). Layer 1 shipped as `v0.1.0` with eight harness interfaces and Lite implementations. Layer 2 is mid-flight: Plans 1–3 landed (interfaces + concretes for `cost`/`sessions`/`edition`/`config`, providers including a native Anthropic with streaming + prompt caching, tools core + 9 built-ins with `Effects`-based classification + tool-review hardening). Plans 4–8 remain open in their execution plans (MCP+UIBridge, agent loop, `openharness/app/` registration surface, ghostfin import rewrite, examples + `/create-openharness-app` scaffolder).
 
 Today, the only way to assemble an openharness app is to instantiate each Lite store by hand in `main.go`. ghostfin does this; any future vertical would clone-and-adapt. Plan 6 adds an `app.NewApp(AppConfig)` constructor and a registration surface (`Tools()`, `Agents()`, `Telemetry()`, `Frontend()`, `Run()`), but it does not bind the eight stores — that's still the caller's job. The framework's "machine that builds machines" framing is true on paper (the eight interfaces are swappable) but missing the load-bearing primitives that turn it into a real platform: a composition entrypoint, named profiles, and a declarative config surface.
 
@@ -9,7 +9,7 @@ This change adds those three primitives and reframes the remaining extraction wo
 **Stakeholders**: openharness maintainers (this change shapes the public composition API for the rest of the `0.x` series), ghostfin/desktop (consumes the API once Plan 7 lands), future verticals (the scaffolder generates `compose.New(...)` callsites), ghostfin-enterprise (will consume `profiles.Enterprise()` once Layer 5 lands).
 
 **Constraints**:
-- Cannot change the eight harness interfaces' method signatures (those evolve under their own change tracks, e.g. Layer 1.5 `EventStream.Send` under `openharness-pol.7`).
+- Cannot change the eight harness interfaces' method signatures; those evolve under their own changes, including the Layer 1.5 `EventStream.Send` work.
 - Cannot break Plan 6's `app.NewApp` once it lands — `compose.New` must produce the same `*app.App` value type.
 - API surface frozen for `0.x` with versioned breaks (per the existing extraction-spec policy).
 - Must work without Layer 5 enterprise impls existing (Enterprise profile ships as a stub).
@@ -85,7 +85,7 @@ This change adds those three primitives and reframes the remaining extraction wo
 - Defer `profiles.Enterprise()` until Layer 5 ships. Rejected: ghostfin-enterprise needs to know the symbol name now to plan its migration; deferring leaves the API surface incomplete.
 - Ship a panic-on-call stub. Rejected: panics in framework code are bad form; explicit error is more debuggable.
 
-**Why it works:** Reserving the name now lets the docs, the scaffolder, and the SDK reference `profiles.Enterprise` immediately. The error message includes the beads tracking ID so anyone hitting it has a forward path. Replacement is non-breaking.
+**Why it works:** Reserving the name now lets the docs, the scaffolder, and the SDK reference `profiles.Enterprise` immediately. The error message points to the Layer 5 roadmap entry so anyone hitting it has a forward path. Replacement is non-breaking.
 
 ### D6: Profile populates `RunnerRegistry`; profiles do not replace it
 
@@ -113,7 +113,7 @@ This change adds those three primitives and reframes the remaining extraction wo
 - **[Risk] YAML schema lock-in.** Once `openharness.yaml` is documented, schema changes are breaking. **Mitigation:** version the schema (`version: 1` field required), reject unknown top-level keys at load time so typos fail loudly, write the schema reference doc with the same care as the Go API.
 - **[Risk] Driver registry sprawl.** Each of the eight interfaces gets its own driver registry (`drivers.RegisterSessionStore`, `RegisterSecretStore`, ...). **Mitigation:** keep the registries co-located in `openharness/compose/drivers/`; document driver-name conventions (`lite`, `vault`, `s3`, `pg`); cap to one registration per name per interface (re-register returns an error sentinel).
 - **[Risk] Custom profiles obscure the canonical Lite/Enterprise surface.** A vertical defining `my-lite-with-s3` could re-implement most of `profiles.Lite()` and drift. **Mitigation:** `profiles.Lite()` exposes a `Bindings`-returning helper (`profiles.LiteBindings(ctx, cfg)`) that custom profiles can call and then patch — sanctioned composition over copy-paste.
-- **[Risk] Stub Enterprise profile masks Layer 5 progress.** If `profiles.Enterprise()` errors silently are swallowed, callers may not notice it never works. **Mitigation:** the stub's error message includes the beads tracking ID; the scaffolder rejects `profile: enterprise` until Layer 5 lands (CI gate).
+- **[Risk] Stub Enterprise profile masks Layer 5 progress.** If `profiles.Enterprise()` errors silently are swallowed, callers may not notice it never works. **Mitigation:** the stub's error message points to the Layer 5 roadmap entry; the scaffolder rejects `profile: enterprise` until Layer 5 lands (CI gate).
 - **[Trade-off] Two construction paths during `0.x`.** `compose.New` (preferred) and `app.NewApp` (low-level) coexist. Slightly more API surface; better migration story. Worth it.
 - **[Trade-off] One driver registry per interface.** More boilerplate than a single registry keyed by interface, but compile-time-safe and easier to grep. Worth it.
 
@@ -131,7 +131,7 @@ Sequenced PRs, each individually reviewable and shippable:
 
 **Rollback strategy:** `compose` and `profiles` are net-new packages. Reverting the change drops them and leaves Plan 6's `app.NewApp` path intact. Anyone who adopted `compose.New` migrates back to `app.NewApp` (small mechanical change). No data migration, no schema migration, no on-the-wire change.
 
-**Coordination with Plan 6:** Plan 6 must land before this change starts (composition depends on `*app.App` existing). The beads epic for this change adds a hard dependency on `openharness-pol.2.6` (Plan 6 = `openharness/app` registration surface).
+**Coordination with Plan 6:** Plan 6 must land before this change starts because composition depends on the `openharness/app` registration surface and `*app.App` existing. This dependency is recorded in `tasks.md`.
 
 **Coordination with Plan 8:** Once both this change and Plan 8 have landed, the scaffolder template flips from `app.NewApp(...)` to `compose.New(profiles.Lite(), ...)`. That flip lands as a follow-up commit on Plan 8's branch or as a small PR after.
 
@@ -143,4 +143,3 @@ Sequenced PRs, each individually reviewable and shippable:
 - **Should driver registries be global or per-`compose.New` invocation?** Globals are simpler but interfere with parallel tests. **Tentative answer:** globals with a `compose.NewIsolated(...)` test-only constructor that takes its own driver maps. Decide during PR-2 implementation.
 - **Profile composition / inheritance.** Should `profiles.Custom("my-lite-s3", parent: profiles.Lite, override: {...})` exist? Could be useful but inflates surface area. **Tentative answer:** defer; verticals can call `profiles.LiteBindings(...)` then patch fields manually for now.
 - **Versioned `openharness.yaml`.** `version: 1` required, but what's the policy for `version: 2`? **Tentative answer:** breaking schema changes bump version; both versions accepted for one minor release; document under `docs/openharness-yaml-versioning.md` once the schema sees its first break.
-- **Beads epic name.** Proposal lists `openharness-compose`. Confirm before creating: does the existing tracking convention favor `openharness-platform-compose` or similar? **Tentative answer:** start with `openharness-compose`; rename via `bd update` if reviewers prefer a longer name.

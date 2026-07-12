@@ -6,16 +6,16 @@
 - `go test ./...` runs the full test suite.
 - Scope to a single package with e.g. `go test ./tools/core/...`.
 
-## Issue tracking: beads
+## Change planning and task tracking
 
-This repo uses [beads](https://github.com/steveyegge/beads) for all task tracking. Quick reference:
+This repo uses OpenSpec as the source of truth for planned changes and implementation progress:
 
-- `bd ready` — next unblocked work
-- `bd show <id>` — detailed view of an issue
-- `bd update <id> --claim` — claim work atomically
-- `bd close <id>` — mark complete
+- `openspec list --json` — list active changes
+- `openspec status --change <name>` — inspect artifact and task status
+- `openspec validate <name>` — validate an affected change
+- `openspec/changes/<name>/tasks.md` — update implementation progress
 
-The tracking epic for the framework build-out is `openharness-pol`; each layer is a child (`openharness-pol.1` … `openharness-pol.6`). See `AGENTS.md` for the full workflow and the session-close protocol (commit, `bd dolt push`, `git push`).
+Use `/opsx:propose`, `/opsx:apply`, and `/opsx:archive` for the change lifecycle. See `AGENTS.md` for the full agent workflow and session-completion protocol.
 
 ## Design docs and plans
 
@@ -25,4 +25,4 @@ The tracking epic for the framework build-out is `openharness-pol`; each layer i
 
 ## Agent-specific instructions
 
-If you're working on this repo with Claude Code or another agent, see `CLAUDE.md` and `AGENTS.md` for the expected workflow (non-interactive shell flags, session close, etc.).
+If you're working on this repo with Claude Code or another agent, see `CLAUDE.md` and `AGENTS.md` for the expected workflow.

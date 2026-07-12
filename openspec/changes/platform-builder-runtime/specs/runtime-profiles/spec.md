@@ -36,7 +36,7 @@ The framework SHALL ship `profiles.Lite()` that binds every interface to the exi
 
 ### Requirement: Stub Enterprise profile
 
-The framework SHALL ship `profiles.Enterprise()` immediately on this change landing, even though Layer 5's enterprise impls do not yet exist. The stub MUST return a non-nil error from its binding function with a message citing the unbuilt dependency (e.g. `"enterprise profile requires Layer 5 to land; tracked at openharness-pol.5"`). This guarantees the profile name is reserved and that calling it produces a deterministic, debuggable failure rather than a registry miss. Once Layer 5 lands, the stub is replaced by a real binding function in the same package without API changes.
+The framework SHALL ship `profiles.Enterprise()` immediately on this change landing, even though Layer 5's enterprise impls do not yet exist. The stub MUST return a non-nil error from its binding function with a message citing the unbuilt dependency and roadmap (e.g. `"enterprise profile requires Layer 5 to land; see docs/roadmap.md"`). This guarantees the profile name is reserved and that calling it produces a deterministic, debuggable failure rather than a registry miss. Once Layer 5 lands, the stub is replaced by a real binding function in the same package without API changes.
 
 #### Scenario: Enterprise stub fails clearly today
 

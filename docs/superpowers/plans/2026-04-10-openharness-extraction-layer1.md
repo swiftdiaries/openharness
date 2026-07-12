@@ -14,23 +14,22 @@
 
 | Field | Value |
 |-------|-------|
-| Epic | `openharness-282` |
 | Status | complete |
 | Completed | 2026-04-13 |
 | Release | [v0.1.0](https://github.com/swiftdiaries/openharness/releases/tag/v0.1.0) |
 | Worktree | main (no isolation; narrow cross-repo scope) |
 
-| Task | Beads ID | Status |
-|------|----------|--------|
-| Task 1: Bootstrap openharness Go module | `openharness-dbi` | closed |
-| Task 2: Extract harness interfaces and types | `openharness-8op` | closed |
-| Task 2.5: Add SandboxPolicy type | `openharness-gng` | closed |
-| Task 3: Extract RunnerRegistry and StoreBackedEventStream | `openharness-jo1` | closed |
-| Task 4: Extract Lite implementations into harness/lite/ | `openharness-fs7` | closed |
-| Task 5: Copy existing tests from ghostfin | `openharness-8eo` | closed |
-| Task 6: Wire ghostfin to import from openharness | `openharness-weu` | closed (no-op) |
-| Task 7: Remove old harness package from ghostfin | `openharness-kjz` | closed |
-| Task 8: Update ghostfin-enterprise to import from openharness | `openharness-d7u` | closed |
+| Task | Status |
+|------|--------|
+| Task 1: Bootstrap openharness Go module | closed |
+| Task 2: Extract harness interfaces and types | closed |
+| Task 2.5: Add SandboxPolicy type | closed |
+| Task 3: Extract RunnerRegistry and StoreBackedEventStream | closed |
+| Task 4: Extract Lite implementations into harness/lite/ | closed |
+| Task 5: Copy existing tests from ghostfin | closed |
+| Task 6: Wire ghostfin to import from openharness | closed (no-op) |
+| Task 7: Remove old harness package from ghostfin | closed |
+| Task 8: Update ghostfin-enterprise to import from openharness | closed |
 
 ### Notes from execution
 - **Task 6 was a no-op:** `ghostfin/desktop/pkg/harness` had zero internal consumers. The package was built but never wired into ghostfin's import graph. Wiring ghostfin to openharness is deferred to Layer 2+ when `internal/agent` is rewired.
@@ -1090,7 +1089,7 @@ After Layer 1 lands, each subsequent layer gets its own detailed plan. Here's th
 ### Layer 3: Infrastructure
 
 | Source | Destination | Lines |
-|---|---|---|
+|------|--------|
 | `internal/cost/tracker.go` | `cost/tracker.go` | ~100 |
 | `internal/cost/pricing.go` | `cost/pricing.go` | ~100 |
 | `internal/telemetry/otel.go` | `telemetry/tracer.go` | ~80 |
@@ -1112,7 +1111,7 @@ After Layer 1 lands, each subsequent layer gets its own detailed plan. Here's th
 ### Layer 4: App Scaffold
 
 | Source | Destination | Lines |
-|---|---|---|
+|------|--------|
 | `internal/store/interfaces.go` | `store/interfaces.go` | ~98 |
 | `internal/store/stores.go` | `store/stores.go` | ~28 |
 | `internal/notes/*.go` | `notes/*.go` | ~600 |
@@ -1129,7 +1128,7 @@ After Layer 1 lands, each subsequent layer gets its own detailed plan. Here's th
 ### Layer 5: Enterprise Implementations
 
 | File | Destination | Notes |
-|---|---|---|
+|------|--------|
 | New | `harness/enterprise/session_pg.go` | Postgres SessionStore |
 | New | `harness/enterprise/agent_pg.go` | Postgres AgentStore |
 | New | `harness/enterprise/skill_pg.go` | Postgres + S3 SkillStore |
@@ -1148,7 +1147,7 @@ After Layer 1 lands, each subsequent layer gets its own detailed plan. Here's th
 Reference implementation at `examples/montara/` — a minimal coding agent that validates the framework's registration APIs. See [Montara Design Spec](../specs/2026-04-11-montara-coding-vertical-design.md).
 
 | File | Purpose | Depends on Layer |
-|---|---|---|
+|------|--------|
 | `examples/montara/main.go` | Entry point, wires openharness | Layer 2 (needs `app.Tools().Register`) |
 | `examples/montara/tools/file_read.go` | File reading with line numbers | Layer 2 (needs `tools.Tool` interface) |
 | `examples/montara/tools/file_edit.go` | Search/replace editing | Layer 2 |

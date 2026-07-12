@@ -6,35 +6,34 @@
 
 | Field | Value |
 |-------|-------|
-| Epic | `openharness-pol.2.3` |
 | Status | complete |
 | Completed | 2026-04-18 |
 | Worktree | `.worktrees/layer-2-plan-3-tools` (branch: `feat/layer-2-plan-3-tools`) |
 
-| Task | Beads ID | Status |
-|------|----------|--------|
-| T1: Establish branch + skeleton | `openharness-0bx` | closed |
-| T2: Tool interface + enums | `openharness-wl1` | closed |
-| T3: Registry with effects-aware registration | `openharness-7z7` | closed |
-| T4: Composite | `openharness-z1d` | closed |
-| T5: External content guard | `openharness-cz1` | closed |
-| T6: Security helpers (SSRF, shell_deny, scrub) | `openharness-vet` | closed |
-| T7: web_search built-in | `openharness-bgy` | closed |
-| T8: web_fetch built-in | `openharness-66i` | closed |
-| T9: filesystem built-in | `openharness-im2` | closed |
-| T10: exec built-in | `openharness-lc7` | closed |
-| T11: ask_user built-in | `openharness-kb7` | closed |
-| T12: tasks built-in | `openharness-bf1` | closed |
-| T13: memory built-in (interface reconciliation) | `openharness-t89` | closed |
-| T14: knowledge_graph types | `openharness-8y8` | closed |
-| T15: knowledge_graph built-in | `openharness-npc` | closed |
-| T16: subagent built-in | `openharness-h53` | closed |
-| T17: core.Register + Config | `openharness-3an` | closed |
-| T18: Integration test — D4 matrix + contract assertions | `openharness-8tv` | closed |
-| T19 (V1): Dependency-direction verification | `openharness-fun` | closed |
-| T20 (V2): Full test suite green + vet clean | `openharness-7p5` | closed |
-| T21: Update Progress table in extraction spec | `openharness-2ft` | closed |
-| T22: Close beads issue + push | `openharness-zt6` | closed (PR #3) |
+| Task | Status |
+|------|--------|
+| T1: Establish branch + skeleton | closed |
+| T2: Tool interface + enums | closed |
+| T3: Registry with effects-aware registration | closed |
+| T4: Composite | closed |
+| T5: External content guard | closed |
+| T6: Security helpers (SSRF, shell_deny, scrub) | closed |
+| T7: web_search built-in | closed |
+| T8: web_fetch built-in | closed |
+| T9: filesystem built-in | closed |
+| T10: exec built-in | closed |
+| T11: ask_user built-in | closed |
+| T12: tasks built-in | closed |
+| T13: memory built-in (interface reconciliation) | closed |
+| T14: knowledge_graph types | closed |
+| T15: knowledge_graph built-in | closed |
+| T16: subagent built-in | closed |
+| T17: core.Register + Config | closed |
+| T18: Integration test — D4 matrix + contract assertions | closed |
+| T19 (V1): Dependency-direction verification | closed |
+| T20 (V2): Full test suite green + vet clean | closed |
+| T21: Update Progress table in extraction spec | closed |
+| T22: Close follow-up task + push | closed (PR #3) |
 
 ---
 
@@ -46,7 +45,6 @@
 
 **Spec:** `docs/superpowers/specs/2026-04-16-plan-3-tools-design.md`
 **Parent:** `docs/superpowers/specs/2026-04-13-openharness-layer-2-agent-primitives-design.md`
-**Beads:** `openharness-pol.2.3`
 **Branch:** `feat/layer-2-plan-3-tools`
 
 ---
@@ -110,7 +108,7 @@ openharness/tools/
 ## Task Sequencing Map
 
 | Wave | Tasks | Parallelism |
-|---|---|---|
+|------|--------|
 | A — Core foundation | T1–T6 | sequential (each depends on prior) |
 | B — Security helpers | T7–T10 | independent after T1; runnable in parallel |
 | C — Simple built-ins | T11–T16 | all depend on T2 + T7–T10; runnable in parallel |
@@ -2788,7 +2786,7 @@ git commit -m "docs: mark Layer 2 Plan 3 (tools) as merged"
 
 ---
 
-## Task 22: Close the beads issue + push
+## Task 22: Finalize the task record + push
 
 - [ ] **Step 22.1: Push to remote**
 
@@ -2798,12 +2796,9 @@ git push -u origin feat/layer-2-plan-3-tools
 
 - [ ] **Step 22.2: Open the PR** (via `gh pr create` or the superpowers:finishing-a-development-branch flow)
 
-- [ ] **Step 22.3: Once merged, close the beads issue**
+- [ ] **Step 22.3: Once merged, mark this plan complete**
 
-```bash
-bd close openharness-pol.2.3 --reason "Plan 3 tools merged — $(git rev-parse --short HEAD)"
-bd dolt push
-```
+Update the task table and progress section in this document to record the merged commit and completed status.
 
 ---
 

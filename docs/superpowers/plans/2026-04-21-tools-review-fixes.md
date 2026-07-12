@@ -6,30 +6,29 @@
 
 | Field | Value |
 |-------|-------|
-| Epic | `openharness-bv0` |
 | Status | complete |
 | Completed | 2026-04-21 |
 | Worktree | `/Users/adhita/projects/python/src/github.com/swiftdiaries/openharness/.claude/worktrees/beautiful-hermann-3d3ef2` (branch: `claude/beautiful-hermann-3d3ef2`) |
 
-| Task | Beads ID | Status |
-|------|----------|--------|
-| Task 1: SSRF redirect bypass in web_fetch | `openharness-bv0.1` | closed |
-| Task 2: DNS TOCTOU — pin resolved IP through dialer | `openharness-bv0.2` | closed |
-| Task 3: Expand exec metacharacter blocklist | `openharness-bv0.3` | closed |
-| Task 4: Scrub credentials on Read-effect tool outputs | `openharness-bv0.5` | closed |
-| Task 5: Wrap external content in web_search + knowledge_graph | `openharness-bv0.6` | closed |
-| Task 6: Reject empty WorkspacePath in Register | `openharness-bv0.4` | closed |
-| Task 7: Split exec into read-only and mutating definitions | `openharness-bv0.7` | closed |
-| Task 8: Tighten memory + tasks file permissions to 0600 | `openharness-bv0.8` | closed |
-| Task 9: Registry name-collision guard + delete deferredActivator | `openharness-bv0.9` | closed |
-| Task 10: Delete unused ToolVisibility | `openharness-bv0.10` | closed |
-| Task 11: Extract filesystem write-guard as injectable callback | `openharness-bv0.11` | closed |
-| Task 12: Delete DefaultWorkspace (~/.ghostfin/workspace) | `openharness-bv0.12` | closed (folded into T11 commit) |
-| Task 13: Rename GhostFin User-Agent to openharness | `openharness-bv0.13` | closed |
-| Task 14: Add tools/README.md for tool authors | `openharness-bv0.14` | closed |
-| Task 15: Add httptest round-trip tests for web_fetch + web_search | `openharness-bv0.15` | closed |
-| Task 16: Fix dropped errors and shadowed err | `openharness-bv0.16` | closed |
-| Task 17: Add TODO(plan-4) marker in ask_user test | `openharness-bv0.17` | closed |
+| Task | Status |
+|------|--------|
+| Task 1: SSRF redirect bypass in web_fetch | closed |
+| Task 2: DNS TOCTOU — pin resolved IP through dialer | closed |
+| Task 3: Expand exec metacharacter blocklist | closed |
+| Task 4: Scrub credentials on Read-effect tool outputs | closed |
+| Task 5: Wrap external content in web_search + knowledge_graph | closed |
+| Task 6: Reject empty WorkspacePath in Register | closed |
+| Task 7: Split exec into read-only and mutating definitions | closed |
+| Task 8: Tighten memory + tasks file permissions to 0600 | closed |
+| Task 9: Registry name-collision guard + delete deferredActivator | closed |
+| Task 10: Delete unused ToolVisibility | closed |
+| Task 11: Extract filesystem write-guard as injectable callback | closed |
+| Task 12: Delete DefaultWorkspace (~/.ghostfin/workspace) | closed (folded into T11 commit) |
+| Task 13: Rename GhostFin User-Agent to openharness | closed |
+| Task 14: Add tools/README.md for tool authors | closed |
+| Task 15: Add httptest round-trip tests for web_fetch + web_search | closed |
+| Task 16: Fix dropped errors and shadowed err | closed |
+| Task 17: Add TODO(plan-4) marker in ask_user test | closed |
 
 **Follow-ups filed during execution (not blocking):**
 - (none — all review findings were fixed inline or were already in-scope of a planned task)
@@ -1627,7 +1626,7 @@ Above the test body, add:
 // TODO(plan-4): this test asserts the stubbed "waiting_for_user" response.
 // When Plan 4 wires the UIBridge channel, rewrite this test to exercise the
 // real interactive flow. See docs/superpowers/plans/layer-2/*-plan-4-*.md
-// (or the beads issue once filed).
+// (or the follow-up task once filed).
 ```
 
 - [ ] **Step 2: Commit**
@@ -1647,22 +1646,17 @@ git commit -m "tools/core: flag ask_user stub test with TODO(plan-4)"
 go build ./...
 go vet ./...
 go test ./tools/... ./...
-bd preflight
+openspec list --json
 ```
 
-- [ ] **File beads issues for any deferred items**
+- [ ] **File follow-up tasks for any deferred items**
 
-If any task above got deferred (e.g. the full exec tokenization refactor beyond Task 3), create a beads issue capturing it:
-
-```bash
-bd create --title="exec: replace sh -c with tokenized exec.Command" --description="Task 3 expanded the metachar blocklist as a minimal fix. Long-term, exec should parse args and call exec.CommandContext directly so shell injection becomes structurally impossible. Preserves quoted-arg support is the main design question." --type=task --priority=2
-```
+If any task above got deferred (for example, replacing `sh -c` with tokenized `exec.Command`), capture it in the active OpenSpec change's `tasks.md` or propose a focused follow-up change.
 
 - [ ] **Push**
 
 ```bash
 git pull --rebase
-bd dolt push
 git push
 git status  # must show "up to date with origin"
 ```
@@ -1681,5 +1675,5 @@ git status  # must show "up to date with origin"
 
 - **Task 6** (reject empty WorkspacePath) will break any existing test that called `Register(r, Config{})`. Step 5 of T6 handles this surgically. Don't skip it.
 - **Task 7** (split `exec`) renames `exec` → `exec_read` + `exec_mutate`. Any downstream caller (ghostfin-enterprise, future vertical) that hard-references `"exec"` will break. Document in the commit body.
-- **Task 11** deletes `DefaultWorkspace` from the framework — ghostfin-enterprise must reintroduce it on their side. File a beads issue against ghostfin-enterprise if that repo is sharing CI.
+- **Task 11** deletes `DefaultWorkspace` from the framework — ghostfin-enterprise must reintroduce it on their side. File a follow-up task against ghostfin-enterprise if that repo is sharing CI.
 - **Phase order matters**: Phase 1 must land before any production/shared deployment that exposes these tools behind an LLM with network access.

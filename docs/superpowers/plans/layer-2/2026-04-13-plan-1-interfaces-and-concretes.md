@@ -18,13 +18,12 @@
 
 | Field | Value |
 |-------|-------|
-| Epic | `openharness-7fi` |
 | Status | complete |
 | Completed | 2026-04-14 |
 | Worktree | .worktrees/plan-1-interfaces-and-concretes (branch: feat/layer-2-plan-1-interfaces-and-concretes) |
 
-| Task | Beads ID | Status |
-|------|----------|--------|
+| Task | Status |
+|------|--------|
 | Task 1: Worktree setup + sanity check | openharness-5ly | closed |
 | Task 2: Move cost package | openharness-lsy | closed |
 | Task 3: Move sessions package (Lite only) | openharness-9zl | closed |
@@ -43,7 +42,7 @@
 ### Files to copy from ghostfin (with optional build-tag stripping)
 
 | Source | Destination | Notes |
-|--------|-------------|-------|
+|------|--------|
 | `ghostfin/desktop/internal/cost/tracker.go` | `openharness/cost/tracker.go` | No tag, copy verbatim |
 | `ghostfin/desktop/internal/cost/pricing.go` | `openharness/cost/pricing.go` | Strip `//go:build sqliteonly` and any `// +build sqliteonly` line |
 | `ghostfin/desktop/internal/cost/tracker_test.go` | `openharness/cost/tracker_test.go` | No tag, copy verbatim |

@@ -74,7 +74,7 @@ Status snapshot. Updated as layers ship.
 | Layer | Status | Spec | Plan(s) | Release |
 |-------|--------|------|---------|---------|
 | Layer 1 — harness boundary | ✓ v0.1.0 shipped | (this doc, §Layer 1) | [`plans/2026-04-10-openharness-extraction-layer1.md`](../plans/2026-04-10-openharness-extraction-layer1.md) | [v0.1.0](https://github.com/swiftdiaries/openharness/releases/tag/v0.1.0) |
-| Layer 1.5 — adoption enrichments | in progress | [ghostfin adoption spec](../../../../ghostfin/docs/superpowers/specs/2026-04-14-ghostfin-openharness-adoption-design.md) (companion) | tracked in beads | v0.2.0 (pending) |
+| Layer 1.5 — adoption enrichments | in progress | [ghostfin adoption spec](../../../../ghostfin/docs/superpowers/specs/2026-04-14-ghostfin-openharness-adoption-design.md) (companion) | OpenSpec change pending | v0.2.0 (pending) |
 | Layer 2 — agent primitives | in progress (Plans 1–3 merged; Plan 4 next) | [`specs/2026-04-13-openharness-layer-2-agent-primitives-design.md`](2026-04-13-openharness-layer-2-agent-primitives-design.md), [`specs/2026-04-16-plan-3-tools-design.md`](2026-04-16-plan-3-tools-design.md) | [`plans/layer-2/2026-04-13-execution-order.md`](../plans/layer-2/2026-04-13-execution-order.md) + per-plan | v0.2.0 (pending) |
 | Layer 3 — infrastructure | not started | — (spec TBD) | — | — |
 | Layer 4 — app scaffold | not started | — (spec TBD) | — | — |
@@ -83,14 +83,7 @@ Status snapshot. Updated as layers ship.
 
 **Next unblocked work:** Layer 2 Plan 4 (MCP outbound + UIBridge) and Layer 1.5 event/runner enrichments run in parallel; v0.2.0 ships when both tracks land.
 
-**Tracking:** beads epic `openharness-pol`. Layers are children (`openharness-pol.1` … `openharness-pol.6`); Layer 2 plans are grandchildren (`openharness-pol.2.1` … `openharness-pol.2.8`); Layer 1.5 lives under Layer 1 (`openharness-pol.7` with children `.7.1` … `.7.8`). Ghostfin-side adoption work is tracked separately in the ghostfin beads project under `ghostfin-9b3`. Useful commands:
-
-- `bd ready` — next unblocked work
-- `bd graph openharness-pol.6` — full layer chain (L1 → L6)
-- `bd graph openharness-pol.2.8` — Layer 2 plan chain
-- `bd list --parent=openharness-pol --all` — all layer children
-- `bd list --parent=openharness-pol.2 --all` — all Layer 2 plan children
-- `bd list --parent=openharness-pol.7 --all` — Layer 1.5 adoption-enrichment tasks
+**Tracking:** OpenSpec changes under `openspec/changes/` are the source of truth for active implementation tasks. Use `openspec list --json` and `openspec status --change <name>` to inspect current work. Historical execution plans remain under `docs/superpowers/plans/`.
 
 ---
 
@@ -450,7 +443,7 @@ Driven by the ghostfin/desktop adoption spec ([companion](../../../../ghostfin/d
 
 **Release coordination:** openharness tags v0.2.0 first. ghostfin's companion PR-A references the real tag (not a pseudo-version or `replace` directive). An rc tag (`v0.2.0-rc1`) de-risks the module-artifact vs `go.work` divergence before the final tag.
 
-**Tracking:** beads parent bead under `openharness-pol`; adversarial-review blockers (CR-1, CR-2, CR-4) filed as children. Consumer-side work (CR-3, S-2, ghostfin callsite migrations) tracked in ghostfin's beads project.
+**Tracking:** capture the adoption-enrichment work and its adversarial-review blockers in an OpenSpec change before implementation. Ghostfin-side migrations remain owned by the ghostfin repository.
 
 ### Layer 2: Agent Primitives
 

@@ -1,69 +1,28 @@
 # Project Instructions for AI Agents
 
-This file provides instructions and context for AI coding agents working on this project.
+This project uses **OpenSpec** for change planning and task tracking.
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
-## Beads Issue Tracker
+## Workflow
 
-This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+- Inspect active work with `openspec list --json`.
+- Treat `openspec/changes/<name>/tasks.md` as the source of truth for implementation status.
+- Use `/opsx:propose`, `/opsx:apply`, and `/opsx:archive` for the change lifecycle.
+- Validate affected changes with `openspec validate <name>` before completion.
+- Run the relevant tests and linters, then commit and push all intended changes.
 
-### Quick Reference
-
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>         # Complete work
-```
-
-### Rules
-
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
-- Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
-
-## Session Completion
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd dolt push
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-<!-- END BEADS INTEGRATION -->
-
-
-## Build & Test
-
-_Add your build and test commands here_
+## Build and test
 
 ```bash
-# Example:
-# npm install
-# npm test
+go test ./...
+go vet ./...
 ```
 
-## Architecture Overview
+## Architecture overview
 
-_Add a brief overview of your project architecture_
+See `docs/architecture.md` for the layered framework design and `docs/roadmap.md` for delivery status.
 
-## Conventions & Patterns
+## Conventions
 
-_Add your project-specific conventions here_
+- Design specs and execution plans live under `docs/superpowers/{specs,plans}/`.
+- OpenSpec changes live under `openspec/changes/` and carry proposal, design, capability specs, and tasks.
+- Prefer non-interactive shell commands and preserve unrelated working-tree changes.

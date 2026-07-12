@@ -1,7 +1,7 @@
 ## 1. Pre-flight
 
-- [ ] 1.1 Confirm Layer 2 Plan 6 (`openharness/app/` registration surface) has landed on `main` and `app.NewApp(AppConfig)` returns a usable `*app.App`. Block this change's start until that PR merges; record the dependency in beads as `openharness-compose` blocked by `openharness-pol.2.6`.
-- [ ] 1.2 File the `openharness-compose` epic in beads with a brief description and link back to `openspec/changes/platform-builder-runtime/proposal.md`. Create child issues for each PR in this task list (one bead per `## N` group below).
+- [ ] 1.1 Confirm Layer 2 Plan 6 (`openharness/app/` registration surface) has landed on `main` and `app.NewApp(AppConfig)` returns a usable `*app.App`. Keep this change blocked until that prerequisite is complete.
+- [ ] 1.2 Review this task list against `proposal.md`, `design.md`, and both capability specs; add any missing implementation or verification tasks before starting PR-1.
 - [ ] 1.3 Add a `replace` directive in any local `go.work` only if the user already uses one; otherwise rely on the published openharness module. (Memory note: this repo prefers real tags over `replace`/`go.work use`.)
 - [ ] 1.4 Snapshot the current `go test ./...` baseline on `main` so post-change diffs are interpretable. Record the test count in the PR-1 description.
 
@@ -29,10 +29,10 @@
 
 ## 4. PR-3 — `profiles.Enterprise()` stub
 
-- [ ] 4.1 Create `openharness/profiles/enterprise.go`. Define `Enterprise() Profile` returning a closure that immediately returns `nil, fmt.Errorf("enterprise profile requires Layer 5 to land; tracked at openharness-pol.5")`. Run `init()` to call `Register("enterprise", Enterprise())`.
-- [ ] 4.2 Tests in `profiles/enterprise_test.go`: assert error contains `"layer 5"` (case-insensitive) and `"openharness-pol.5"` substring; assert deterministic across 100 invocations; assert no goroutines or files leak (`goleak` if available, else `runtime.NumGoroutine` snapshot).
+- [ ] 4.1 Create `openharness/profiles/enterprise.go`. Define `Enterprise() Profile` returning a closure that immediately returns `nil, fmt.Errorf("enterprise profile requires Layer 5 to land; see docs/roadmap.md")`. Run `init()` to call `Register("enterprise", Enterprise())`.
+- [ ] 4.2 Tests in `profiles/enterprise_test.go`: assert error contains `"layer 5"` (case-insensitive) and `"docs/roadmap.md"`; assert deterministic across 100 invocations; assert no goroutines or files leak (`goleak` if available, else `runtime.NumGoroutine` snapshot).
 - [ ] 4.3 Update `compose/compose_test.go` with a test that `compose.New(profiles.Enterprise(), ...)` returns a nil `*app.App` and a non-nil error.
-- [ ] 4.4 Add a `docs/profiles.md` first draft listing `lite` (live) and `enterprise` (stub; tracked at `openharness-pol.5`). Cross-link to `docs/architecture.md`.
+- [ ] 4.4 Add a `docs/profiles.md` first draft listing `lite` (live) and `enterprise` (stub pending Layer 5). Cross-link to `docs/architecture.md` and `docs/roadmap.md`.
 - [ ] 4.5 Run `go test ./profiles/... -race`. Open the PR.
 
 ## 5. PR-4 — YAML loader + driver registries
@@ -78,14 +78,14 @@
 - [ ] 8.4 Manual smoke: `cd examples/minimal-vertical && go run .` boots the agent chat loop. Send one message, see one streamed response. Stop with Ctrl+C; confirm no goroutine leaks (use `runtime.NumGoroutine` printout if no goleak).
 - [ ] 8.5 YAML smoke: same example launched via `go run . --config openharness.yaml` produces identical observable behavior.
 - [ ] 8.6 Backward-compat smoke: a pre-change consumer of `app.NewApp(AppConfig{})` (synthesized in a test fixture) still compiles and runs against the new module.
-- [ ] 8.7 Update `bd` issues: close `openharness-compose` children as each PR merges. The epic closes when PR-6 lands and verification §8 passes.
+- [ ] 8.7 Update this task list as each PR merges. The change is complete when PR-6 lands and verification §8 passes.
 - [ ] 8.8 OpenSpec archive: once all checkboxes here are checked and PRs merged, run `/opsx:archive` to roll `specs/app-composition` and `specs/runtime-profiles` into `openspec/specs/` permanently.
 
-## 9. Follow-ups (filed as separate beads issues, not blocking this change)
+## 9. Follow-ups (captured as separate OpenSpec changes when ready, not blocking this change)
 
-- [ ] 9.1 Replace `profiles.Enterprise()` stub with real bindings once Layer 5 lands. Tracked under `openharness-pol.5`.
+- [ ] 9.1 Replace `profiles.Enterprise()` stub with real bindings once Layer 5 lands.
 - [ ] 9.2 Add `Bindings.TraceRecorder` and `Bindings.SpanSink` once Layer 3 telemetry refactor lands (per design.md Open Question 1).
 - [ ] 9.3 Decide on global vs per-invocation driver registries (per design.md Open Question 2). Currently global; `compose.NewIsolated(...)` test-only constructor TBD.
 - [ ] 9.4 Profile composition / inheritance API (per design.md Open Question 3). Currently `LiteBindings` compose-and-patch; revisit if real-world friction emerges.
 - [ ] 9.5 `openharness.yaml` schema versioning policy (per design.md Open Question 4). Currently `version: 1` only; document `version: 2` policy when first break occurs.
-- [ ] 9.6 ghostfin migration: after Plan 7 lands, file a follow-up to switch ghostfin's `desktop/main.go` from `app.NewApp(...)` to `compose.New(profiles.Lite(), ...)`. Tracked in the ghostfin beads project.
+- [ ] 9.6 Ghostfin migration: after Plan 7 lands, propose a follow-up change to switch ghostfin's `desktop/main.go` from `app.NewApp(...)` to `compose.New(profiles.Lite(), ...)`.

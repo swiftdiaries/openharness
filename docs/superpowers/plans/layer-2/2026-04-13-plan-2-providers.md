@@ -18,38 +18,29 @@
 
 | Field | Value |
 |-------|-------|
-| Epic | `openharness-ssx` |
 | Status | complete (PR #2) |
 | Worktree | `.worktrees/plan-2-providers` (branch: `feat/layer-2-plan-2-providers`) |
 | PR | https://github.com/swiftdiaries/openharness/pull/2 |
-| Fast-follow | `openharness-1cu` — `ResolveAPIKeyWithStore` + `secret:<name>` scheme (landed in the same PR) |
+| Fast-follow | `ResolveAPIKeyWithStore` + `secret:<name>` scheme (landed in the same PR) |
 
-| Task | Beads ID | Status |
-|------|----------|--------|
-| Task 1: Worktree sanity + add Anthropic SDK dep | `openharness-qwi` | closed |
-| Task 2: Move `providers/types.go` | `openharness-by6` | closed |
-| Task 3: Move `providers/models.go` | `openharness-c31` | closed |
-| Task 4: Move `providers/registry.go` + test | `openharness-oe8` | closed |
-| Task 5: Move `providers/openai_compat.go` + test | `openharness-xyc` | closed |
-| Task 6: Move `providers/openrouter.go` + test (drop keychain dep) | `openharness-8zj` | closed |
-| Task 7: `providers/anthropic.go` skeleton + constructor test | `openharness-x9g` | closed |
-| Task 8: `anthropic.go` non-streaming `Chat` (text response) | `openharness-78y` | closed |
-| Task 9: `anthropic.go` streaming `ChatStream` (text deltas) | `openharness-bl0` | closed |
-| Task 10: `anthropic.go` tool-call reassembly | `openharness-32t` | closed |
-| Task 11: `anthropic.go` prompt caching + cache-token accounting | `openharness-2v0` | closed |
-| Task 12: `anthropic.go` error handling + retry semantics | `openharness-d31` | closed |
-| Task 13: Final verification, lint, push | `openharness-bup` | closed |
-| Fast-follow: `ResolveAPIKeyWithStore` + `secret:` scheme | `openharness-1cu` | closed |
+| Task | Status |
+|------|--------|
+| Task 1: Worktree sanity + add Anthropic SDK dep | closed |
+| Task 2: Move `providers/types.go` | closed |
+| Task 3: Move `providers/models.go` | closed |
+| Task 4: Move `providers/registry.go` + test | closed |
+| Task 5: Move `providers/openai_compat.go` + test | closed |
+| Task 6: Move `providers/openrouter.go` + test (drop keychain dep) | closed |
+| Task 7: `providers/anthropic.go` skeleton + constructor test | closed |
+| Task 8: `anthropic.go` non-streaming `Chat` (text response) | closed |
+| Task 9: `anthropic.go` streaming `ChatStream` (text deltas) | closed |
+| Task 10: `anthropic.go` tool-call reassembly | closed |
+| Task 11: `anthropic.go` prompt caching + cache-token accounting | closed |
+| Task 12: `anthropic.go` error handling + retry semantics | closed |
+| Task 13: Final verification, lint, push | closed |
+| Fast-follow: `ResolveAPIKeyWithStore` + `secret:` scheme | closed |
 
-**Before Task 1:** create a beads epic and the 13 tasks above. Claim each task before starting it and close it after its commit lands.
-
-```bash
-bd create --type=epic --title="Layer 2 Plan 2: providers (OpenAI-compat move + native Anthropic)" \
-  --description="Move providers verbatim from ghostfin, strip sqliteonly, drop keychain dep; add native Anthropic SDK provider with SSE streaming, tool-call reassembly, and prompt caching." \
-  --priority=2
-# Record the returned epic ID in the table above, then create 13 child tasks with
-# --depends-on=<epic-id> so bd ready surfaces them in order.
-```
+**Before Task 1:** review the tasks above, mark the active task in progress, and update its status after the corresponding commit lands.
 
 ---
 
@@ -58,7 +49,7 @@ bd create --type=epic --title="Layer 2 Plan 2: providers (OpenAI-compat move + n
 ### Files to copy from ghostfin (strip `//go:build sqliteonly` + `// +build sqliteonly` lines, otherwise verbatim)
 
 | Source | Destination | Notes |
-|--------|-------------|-------|
+|------|--------|
 | `ghostfin/desktop/internal/providers/types.go` | `openharness/providers/types.go` | Strip sqliteonly tag. No other edits. |
 | `ghostfin/desktop/internal/providers/models.go` | `openharness/providers/models.go` | Strip sqliteonly tag. No other edits. |
 | `ghostfin/desktop/internal/providers/registry.go` | `openharness/providers/registry.go` | Strip sqliteonly tag. No other edits. |
@@ -1293,13 +1284,9 @@ grep -rn "sqliteonly" providers/ || echo "clean"
 
 Expected: `clean`.
 
-- [ ] **Step 5: File the fast-follow issue for secret-store integration**
+- [ ] **Step 5: Capture the secret-store integration follow-up**
 
-```bash
-bd create --type=task --priority=3 \
-  --title="providers: wire keychain/SecretStore into ResolveAPIKey" \
-  --description="Plan 2 dropped the keychain: scheme from openharness/providers/openrouter.go when extracting from ghostfin. Re-introduce secret resolution via the openharness SecretStore interface (Layer 1) once Plan 4 lands it. Until then, vertical apps pass literal or \$ENV_VAR keys."
-```
+Add a task to the active OpenSpec change to reintroduce secret resolution through the Layer 1 `SecretStore` interface once the MCP integration lands. Until then, vertical apps pass literal or environment-variable keys.
 
 - [ ] **Step 6: Push branch**
 
