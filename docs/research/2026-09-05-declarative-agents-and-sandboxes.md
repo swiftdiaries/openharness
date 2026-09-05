@@ -141,6 +141,104 @@ Publish one example and deployment profile with a concise compatibility table: a
 
 Grow the abstraction only after the first backend and harness pass. Potential upstream work includes recovery conformance cases and substrate adapter fixes; AX's current contribution pause favors issue feedback first. No upstream messages or pull requests are authorized or sent by this research.
 
+## Evaluation: OTel traces, human review and repeatable cases
+
+Add evaluation alongside the first runnable vertical. The purpose is to check whether a change to an agent, harness or sandbox improves the work without breaking its constraints. **OTel records execution; human review judges the result; eval cases make that judgment repeatable.** This section is proposed architecture, not an implemented eval system.
+
+### Build on the existing telemetry design
+
+OpenHarness already specifies a relational trace index and a separate span sink: SQLite plus DuckDB/Parquet for Lite, and PostgreSQL plus OTLP export for Enterprise. The current `TraceRecorder` has a no-op implementation; the OpenAI-compatible provider adds events to an existing span but does not create a complete trace. OTel API dependencies alone do not configure an SDK or exporter. Telemetry bindings remain deferred in the composition change. [Trace storage design](../superpowers/specs/2026-04-10-openharness-extraction-design.md#trace-instrumentation--two-layer-architecture), [recorder interface](../../agent/interfaces.go), [provider instrumentation](../../providers/openai_compat.go), [pending bindings](../../openspec/changes/platform-builder-runtime/tasks.md).
+
+Kiteframe currently uses Rust `tracing` and a formatted subscriber. An OTel bridge, exporter and propagation across process boundaries are additional work. Its durable task and invocation records remain the source of execution facts; telemetry must not become the goal ledger. [Kiteframe dependencies](https://github.com/swiftdiaries/kiteframe/blob/06c3abb5aa9385e9b76c5d47e754afa7df6e49de/Cargo.toml), [subscriber setup](https://github.com/swiftdiaries/kiteframe/blob/06c3abb5aa9385e9b76c5d47e754afa7df6e49de/src/main.rs#L419).
+
+```mermaid
+flowchart LR
+    R[Agent execution] --> O[OTel instrumentation]
+    O --> T[Local span sink or OTLP backend]
+    T --> B[Versioned review bundle]
+    K[Kiteframe committed facts] --> B
+    A[Captured content and artifacts] --> B
+    B --> U[Human review interface]
+    U --> L[Saved labels and notes]
+    L --> D[Versioned eval cases]
+    D --> E[Compare baseline and candidate]
+    E --> R
+```
+
+The last arrow means a new isolated test execution. It does not mean replaying production tool calls or applying eval labels to a live goal.
+
+### 1. Instrument actual execution boundaries
+
+Create spans around operations while they execute, rather than reconstructing a timing tree from completion callbacks. The existing `RecordLLMCall` and `RecordToolCall` methods cannot by themselves supply child contexts for nested provider calls. Extend the recorder contract or introduce wrappers that start a span, pass its context into the call, then finish it. Assign one owner to each span to avoid duplicates from automatic and manual instrumentation.
+
+| Component | Capture |
+|---|---|
+| Kiteframe | Task acceptance, command dispatch, invocation acceptance/result, recovery and committed goal transitions |
+| OpenHarness | Agent invocation, each model call, retrieval and each tool execution |
+| Future guarded worker | Work attempt, authorization reference, sandbox create/attach, process start, cancellation, result delivery and cleanup |
+| Sandbox provider | Available lifecycle timings/status and provider identity; mark unavailable internals explicitly |
+
+Use OTel GenAI conventions for model/agent/tool operations and namespaced application fields for Kiteframe/OpenHarness facts. Pin the convention version: GenAI conventions are still marked Development. Record model, token usage, duration and error details, together with task/invocation/attempt IDs and resolved agent, prompt, tool, harness and execution-profile versions. Use source revisions and image digests for provenance. Keep unique IDs on spans, not as unbounded metric dimensions. [Current GenAI conventions](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md).
+
+Propagate trace context across supported boundaries. ACP does not automatically carry arbitrary OTel metadata; the new worker transport and any supported harness extension need an explicit carrier. An external harness without internal tracing gets an observed invocation span and a declared visibility limit. For resumed work, create new attempt spans and use links plus stable task/invocation IDs to connect them. Do not keep a single span open throughout a days-long goal. [OTel context and span links](https://opentelemetry.io/docs/concepts/signals/traces/).
+
+Keep provider HTTP retries, harness pre-accept attempts and future worker generations as separate identities. Order Kiteframe facts by committed revisions and event sequence, not timestamps alone. Map host-specific IDs at the adapter so OpenHarness need not import Kiteframe domain types. Trace context is untrusted diagnostic metadata: it must not affect authorization, idempotency, revision checks or goal completion. Invalid or absent context changes tracing only.
+
+Capture permitted messages, tool arguments/results and artifact references separately when necessary; spans with only durations cannot support content review. Make content capture explicit, redact credentials before storage/export, and indicate omitted or truncated content. Include emitted explanations when available; never require private model reasoning. Store large diffs and logs as access-controlled artifacts with digests, not enormous span attributes. OTel content recording is optional. [GenAI content capture](https://opentelemetry.io/blog/2026/genai-observability/).
+
+### 2. Review one complete case, not one span
+
+Define a versioned review bundle containing the input task, declared review scope, expected result/rubric, committed outcome, ordered attempts, related trace/span IDs, permitted messages/tool activity, artifacts and a capture-completeness report. Pin the bundle digest. A bounded patch/test attempt and a complete `babysit_pr` goal are different review scopes; do not score them as if they were the same case. One case may include multiple OTel traces after recovery.
+
+Keep execution outcome separate from capture status: distinguish complete, partial, disabled, sampled-out and export-failed capture. A no-op recorder means disabled capture, not an empty successful trace. Build the completeness report from required records in the case contract versus observed records; span count alone cannot prove completeness. Retain a committed outcome snapshot even if its trace is unavailable.
+
+Build the browser interface using the supplied `build-review-interface` workflow:
+
+- Load normalized JSON or CSV exports. Display one whole case at a time, with the task, result, patch and test evidence prominent. Show all attempts and captured intermediate steps; collapse repeated prompts, verbose tool output and diagnostics.
+- Render Markdown, highlighted code/diffs, tables and collapsible JSON. Link each tool call to its result. Strip raw HTML and disable remote images. Show missing/redacted content explicitly.
+- Provide **Pass, Fail, Defer and notes**. Start without failure-category tags; derive categories later from actual reviewer notes. A review label never grants work permission or completes a Kiteframe goal.
+- Auto-save labels and notes to local SQLite, keyed by case/bundle revision, rubric version and reviewer. Retain edits for undo; show save failure rather than claiming success. Keep annotations logically separate from trace metadata and goal state.
+- Provide previous/next, ID lookup, progress counts and metadata filters. Support arrows, `1`/`2`, `D`, `U`, `Cmd+S` and `Cmd+Enter`; typing in notes must not trigger navigation or labels.
+
+The reference panel should state what Pass means for this case. For patch/test work, that includes satisfying the requested change within authorized scope and providing sufficient evidence. Keep kernel outcome, objective-check results and human judgment visible as separate facts. If missing data prevents judgment, Defer rather than infer success or failure.
+
+### 3. Turn reviewed failures into eval cases
+
+Keep sampling outside the interface. Start with a seeded random sample from a known population of runs. Later add targeted samples for diagnosis, but report those separately from estimates of normal performance. Select whole cases from the run inventory; sampling only retained error spans would bias the review set. Controlled eval runs should request full trace capture and verify completeness, since an exporter can still drop data.
+
+After reviewing the first batch, describe observed failure patterns and preserve representative cases. Each case needs a pinned input/repository fixture, agent and harness configuration, sandbox image/profile, expected checks, rubric version and source-review lineage. Split related cases by task/repository into development and held-out sets so near-duplicates do not inflate results.
+
+Use three forms of evaluation:
+
+| Form | What it checks |
+|---|---|
+| Deterministic checks | Patch scope, tests, schema/capability contracts, cleanup, forbidden effects, stale-result rejection and crash/recovery invariants |
+| Human review | Whether the change actually solves the request, uses suitable tools and supplies convincing evidence |
+| Later, calibrated model judges | Specific observed failure modes that need interpretation; validate on held-out human Pass/Fail labels before using as a gate |
+
+Eval execution uses fresh sandboxes and fixture connectors or explicitly bounded read-only integrations. Viewing a trace never re-executes a tool. Separate offline artifact checks, deterministic fault injection and fresh model executions: they answer different questions. Record model/version/settings and repeat variable cases; a seed alone does not guarantee identical model outputs.
+
+Compare baseline and candidate on the same cases, changing one component at a time where possible. Report objective pass rate, human Pass/Fail/Defer counts, capture coverage, recovery outcomes, latency and cost separately. Missing evidence and infrastructure errors must remain visible in the denominator/status report. Safety/correctness gates should not be averaged away by a cheaper or faster run. Judge validation should report missed failures and false alarms, not only overall agreement.
+
+### 4. Make the eval path extensible
+
+Use the existing recorder and span-sink direction; add only the following proposed boundaries when their first implementations are needed:
+
+| Extension point | Initial implementation | Replacement stays responsible for |
+|---|---|---|
+| Trace recorder and sink | OTel instrumentation plus local capture or OTLP | Context, schema version, redaction and capture-loss reporting |
+| Review source | JSON/CSV bundle importer/exporter | Complete case identity, ordering and provenance |
+| Annotation store | Local SQLite | Auto-save, reviewer/rubric/bundle identity and undo history |
+| Evaluator registry | Named deterministic checks | Versioned inputs/results, explicit errors and no live-goal mutation |
+
+An eval manifest should declare dataset revision, candidate agent/harness/execution-profile references, registered evaluators and rubric version. This is a proposed schema, not existing `openharness.yaml` syntax. Keep production composition and eval experiments separate. Selecting an evaluator by name does not authorize loading arbitrary code or credentials. A future telemetry backend adapter can export bundles without coupling the reviewer to that backend's UI or private database schema.
+
+### 5. Deliver it with the pathway
+
+First, instrument one actual OpenHarness vertical and the current Kiteframe invocation boundary; export a complete review bundle. Next, build the local review page and label a small random batch. Then convert reviewed cases into regression checks and add baseline/candidate comparison. Add worker/sandbox spans as the approved execution path lands, and add model judges only after labeled evidence exists.
+
+Acceptance includes both the data path and the UI: prove cross-boundary correlation, restart links, no secret leakage, and visible incomplete capture when export fails. Telemetry export failure must not change a live goal outcome; an eval requiring that capture is marked incomplete. Use Playwright screenshots at desktop/mobile sizes and a workflow test covering Pass, Fail with notes, Defer, undo, navigation, all shortcuts, expanded content and persistence after reload. No UI or instrumentation has been implemented or tested by this document change.
+
 ## Decisions to carry into a subsequent specification
 
 1. Which first user outcome proves the product: the existing `babysit_pr` goal, with a bounded patch/test work attempt as its sandbox unit, is the recommended starting point.

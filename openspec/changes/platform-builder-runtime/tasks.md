@@ -94,3 +94,4 @@
 
 - [x] 10.1 Compare current OpenHarness and Kiteframe with kagent, Google AX and sandbox providers; record source baselines, implemented/planned boundaries and a proposed incremental pathway in `docs/research/2026-09-05-declarative-agents-and-sandboxes.md`.
 - [ ] 10.2 Decide whether to adopt the proposed goal-kernel / harness / sandbox ownership split and first backend experiment. Capture accepted changes in a subsequent OpenSpec proposal before implementation; existing Plan 6 prerequisites and unchecked tasks remain in force.
+- [x] 10.3 Extend the pathway document with OTel instrumentation, whole-case human review, saved annotations, repeatable eval cases and proposed extension boundaries. This records design direction only; telemetry bindings, review UI and eval execution remain unimplemented.
