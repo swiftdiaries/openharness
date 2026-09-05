@@ -89,3 +89,8 @@
 - [ ] 9.4 Profile composition / inheritance API (per design.md Open Question 3). Currently `LiteBindings` compose-and-patch; revisit if real-world friction emerges.
 - [ ] 9.5 `openharness.yaml` schema versioning policy (per design.md Open Question 4). Currently `version: 1` only; document `version: 2` policy when first break occurs.
 - [ ] 9.6 Ghostfin migration: after Plan 7 lands, propose a follow-up change to switch ghostfin's `desktop/main.go` from `app.NewApp(...)` to `compose.New(profiles.Lite(), ...)`.
+
+## 10. OSS pathway research (2026-09-05; advisory, no implementation scope change)
+
+- [x] 10.1 Compare current OpenHarness and Kiteframe with kagent, Google AX and sandbox providers; record source baselines, implemented/planned boundaries and a proposed incremental pathway in `docs/research/2026-09-05-declarative-agents-and-sandboxes.md`.
+- [ ] 10.2 Decide whether to adopt the proposed goal-kernel / harness / sandbox ownership split and first backend experiment. Capture accepted changes in a subsequent OpenSpec proposal before implementation; existing Plan 6 prerequisites and unchecked tasks remain in force.
