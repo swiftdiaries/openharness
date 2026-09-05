@@ -10,6 +10,31 @@ The product promise worth testing is: **declare a bounded job once, run it throu
 
 The OSS landscape can shorten the infrastructure work substantially. However, adopting both kagent and AX underneath Kiteframe would introduce several overlapping execution controllers. Evaluate one bounded integration at a time, and choose the owner of every state transition before implementing an adapter.
 
+## Scope reduction clarified during plan comparison
+
+The [comparison with existing plans](2026-09-05-pathway-plan-delta.md) distinguishes reused scope, changed delivery order and new integration work. The user directed that required pieces such as the DBOS session runtime can be removed from this pathway, retaining a small interface and an explicit stub for future implementation. DBOS is therefore an optional future backend in this direction, not a prerequisite for a runnable OpenHarness agent or the Kiteframe integration.
+
+Reuse existing execution interfaces where sufficient; specify only the additional session operations a real consumer needs. A stub must explicitly reject unsupported durable execution/resume/recovery and must not silently claim those guarantees through in-memory execution or transcript storage. Defer DBOS workflows, checkpoint replay, orphan recovery and dependent SDK acceptance until a real backend implements and verifies the contract. In the integrated path, Kiteframe owns work recovery and OpenHarness performs a bounded invocation. The existing Layer 6 SDK spec still describes DBOS and needs a focused amendment; this document records the requested direction without implementing that amendment or a runtime.
+
+## Minimal first pass: deep modules with explicit stubs
+
+The user's intended delivery shape is **a minimal first pass with deep modules and small interfaces, followed by a second pass that fills deferred implementations**. The broader pathway below is a destination, not a requirement to ship every subsystem in the first pass.
+
+A deep module hides a complete responsibility behind an interface its callers can use without coordinating its internals. Extensibility belongs at the seams where implementations need to vary; helpers inside the loop do not each need a public plugin interface. Reuse current harness contracts and the planned composition registry. User-requested stubs reserve deferred seams; they are not evidence that a second working adapter exists.
+
+| Module | Small caller-facing interface, described behaviorally | Working first pass | Stub or next pass |
+|---|---|---|---|
+| Agent execution — OpenHarness | Start one bounded invocation, consume its events/result, cancel it; use existing HarnessRunner/EventStream contracts and relevant Layer 1.5 input support | One real provider/tool loop with bounded execution and an artifact/result; tool admission and cancellation handled inside the module | Durable resume/session recovery explicitly unsupported; session-runtime adapter reserved only where existing contracts cannot express the consumer need |
+| Execution environment — worker-owned in Kiteframe integration | Acquire an execution environment under a resolved profile, run the invocation, reconcile/release it using stable identity | First OpenHarness proof uses an explicitly local, non-isolated environment; no guarded-work claim | Sandbox provider adapter is an explicit unsupported stub until the approved worker design and one real backend exist; snapshot, warm-pool and resume implementations follow later |
+| Run evidence — OpenHarness capture and later Kiteframe correlation | Capture a run and export a reviewable case bundle with capture status | Real OTel capture at the local invocation/model/tool seams, one export route, result/artifact references and explicit incomplete-capture status | Cross-process propagation, full analytics storage and remote export adapters can follow; durable execution truth remains outside telemetry |
+| Evaluation — review tooling | Evaluate a case using a versioned criterion and persist a verdict with evidence | One deterministic artifact/result check over the captured case; export the case for review | Browser annotation persistence and calibrated model judges follow. Unsupported evaluators return unsupported, never a synthetic pass |
+
+These describe responsibilities, not final method signatures or four new mandatory public interfaces. The next specification must map them to existing contracts before adding types. Provider-specific mechanics, tool-loop scheduling, OTel SDK wiring and review storage stay inside their respective modules. A local execution adapter cannot advertise isolation, durability or remote-work capabilities.
+
+**First-pass acceptance:** declare one bounded agent using the minimal available assembly path; run one permitted tool; return an inspectable result/artifact; cancel through the existing execution interface; capture/export a real trace case; run one deterministic check. Selecting a deferred capability must fail clearly before dispatch or any external effect. This does not require the full composition release, DBOS, a sandbox cluster, ACP transport, a browser UI or an LLM judge. Existing composition prerequisites and release acceptance remain separate.
+
+**Second-pass progression:** fill one adapter at a time behind these seams: approved guarded sandbox worker, optional OpenHarness ACP transport, human review UI and repeatable case comparison. Verify lifecycle and error behavior through the same interface callers use. A backend that needs a materially different contract triggers an explicit interface revision; the first pass does not promise that all future backends can fit without change.
+
 ## Starting point: what your projects actually contain
 
 | Project | Verified source baseline | Available foundations | Missing for this pathway |
