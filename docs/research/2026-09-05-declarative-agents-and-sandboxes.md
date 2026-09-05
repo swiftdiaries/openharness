@@ -166,6 +166,36 @@ Publish one example and deployment profile with a concise compatibility table: a
 
 Grow the abstraction only after the first backend and harness pass. Potential upstream work includes recovery conformance cases and substrate adapter fixes; AX's current contribution pause favors issue feedback first. No upstream messages or pull requests are authorized or sent by this research.
 
+## Authentication: resumable login for agents
+
+Add a deep authentication module whose interface supports a login that outlives a CLI process. Existing plans cover [workspace-scoped bearer authentication](../superpowers/specs/2026-04-17-layer-6-sdk-design.md#auth-multi-tenancy-and-lite-hardening) and [MCP OAuth credentials through SecretStore](../superpowers/specs/2026-04-13-openharness-layer-2-agent-primitives-design.md#mcp-oauth-via-secretstore), but do not specify this interaction. Those are planned foundations, not evidence of an implemented login service.
+
+[Dosu's CLI login design](https://dosu.dev/blog/cli-login-flow-for-coding-agents) supplies the interaction model: request a short-lived login ticket, return a browser URL and a command for checking it, exit, then complete the exchange from a new process after the human explicitly authorizes access. Its custom ticket protocol is inspired by device authorization; it is not a full RFC 8628 implementation. Adopt the resumable interaction without committing our interface to that particular protocol.
+
+### Small interface, provider-specific implementation
+
+| Caller operation | Interface contract | Hidden implementation |
+|---|---|---|
+| Begin login | Return a pending challenge, verification URL, expiry and structured next action; do not block waiting for browser interaction | Provider discovery/protocol, challenge creation and protected continuation state |
+| Check/complete login | Accept an opaque continuation reference and return pending, authenticated, denied or expired; support a fresh CLI process | Polling limits, exchange, credential storage and recovery from interrupted completion |
+| Status/logout | Report usable identity/workspace and credential status; remove local credentials and report remote revocation outcome where supported | Refresh, secure storage and provider-specific revocation |
+
+These are behavioral responsibilities, not final method signatures. Reuse SecretStore for credential storage and existing authentication contracts where sufficient. CLI commands are thin adapters over this module. Platform login and outbound MCP login may share interaction types, but retain distinct audiences, scopes and credential namespaces.
+
+The CLI should return machine-readable status such as `need_user_action`, an expiry and a structured next action that can be rendered as a resume command. Treat these fields as a versioned interface. Opening a URL must not itself authorize access: the human must explicitly approve the intended account/workspace and requested access. Pending authorization is a normal state, not an authentication failure or a reason to spin in a blocking command.
+
+Keep exchange secrets in protected continuation storage when possible, exposing an opaque reference rather than credentials to the agent. Completion returns identity/status or a credential reference; access and refresh tokens never appear in terminal JSON, model context or trace payloads. Challenge values and verification URLs may also be sensitive and must be redacted from OTel/review bundles. Trace operation, correlation ID and state transitions instead.
+
+A later real adapter must define expiration, denial, bounded polling and one-time exchange behavior. It must also handle an exchange that succeeds before the CLI persists its credential: a retry must either recover safely under a defined protocol or require a new login, never report authentication merely because the ticket disappeared. Browser credentials must remain separate from the CLI credential lifecycle.
+
+### First pass and next pass
+
+**First pass:** preserve credential-based authentication as the minimal planned path; add only the interface needed by its consumer and an interactive-login stub that returns unsupported immediately. Existing bearer-auth plans still require implementation and validation; this section does not claim they already work. A stub cannot create a fake approval URL, report a successful login or silently weaken authentication. The local agent proof does not require a hosted login service.
+
+**Next pass:** implement one browser-assisted adapter behind the same interface, with protected continuation state that survives CLI restarts. Choose a standard device-authorization adapter where the selected identity provider supports it, or specify a narrowly scoped ticket service explicitly; do not build both initially. Login establishes identity. Tool permissions, sandbox policy and Kiteframe work authorization remain separate checks and are not granted by a successful login.
+
+Acceptance should exercise the caller interface across separate processes: request exits promptly; the agent presents the URL and waits for human action; pending remains pending; explicit approval completes; denial/expiry are reported; duplicate exchange and interrupted completion are handled; logout reports its effect; secrets are absent from output and traces. Add a whole-case review/eval fixture for the conversational handoff, since valid JSON alone cannot prove that the agent explained the human's next step correctly.
+
 ## Evaluation: OTel traces, human review and repeatable cases
 
 Add evaluation alongside the first runnable vertical. The purpose is to check whether a change to an agent, harness or sandbox improves the work without breaking its constraints. **OTel records execution; human review judges the result; eval cases make that judgment repeatable.** This section is proposed architecture, not an implemented eval system.
